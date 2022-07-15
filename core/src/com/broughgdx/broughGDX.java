@@ -6,6 +6,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -24,13 +25,14 @@ class Tile {
 
 public class broughGDX extends ApplicationAdapter {
 	static int SIZE = 32;
-	static int MAP_WIDTH = 8;
-	static int MAP_HEIGHT = 8;
+	static int MAP_WIDTH = 12;
+	static int MAP_HEIGHT = 12;
 
 	SpriteBatch batch;
 	Texture allHeroes;
 	Texture environmentTexture;
 	TextureRegion mainHero;
+	boolean isHeroFacingRight;
 	TextureRegion wall;
 	TextureRegion floor;
 	Vector2 mainHeroPosition;
@@ -59,6 +61,10 @@ public class broughGDX extends ApplicationAdapter {
 			for(int j = 0; j < MAP_HEIGHT; j++) {
 				boolean passable = true;
 
+				if(MathUtils.random(1.0f) < 0.2f) {
+					passable = false;
+				}
+
 				if( i == 0 || j == 0 || i == MAP_WIDTH - 1 || j == MAP_HEIGHT - 1) {
 					passable = false;
 				}
@@ -76,8 +82,10 @@ public class broughGDX extends ApplicationAdapter {
 		// Handling Hero Movement
 		if(myInputProcessor.Left()) {
 			mainHeroPosition.x -= SIZE;
+			isHeroFacingRight = false;
 		} else if(myInputProcessor.Right()) {
 			mainHeroPosition.x += SIZE;
+			isHeroFacingRight = true;
 		} else if(myInputProcessor.Up()) {
 			mainHeroPosition.y += SIZE;
 		} else if(myInputProcessor.Down()) {
@@ -89,8 +97,8 @@ public class broughGDX extends ApplicationAdapter {
 		batch.begin();
 
 		// rendering the map
-		float nextX = 160;
-		float nextY = 320;
+		float nextX = 4 * SIZE;
+		float nextY = 12 * SIZE;
 		for(int i = 0; i < MAP_WIDTH; i++) {
 			for(int j = 0; j < MAP_HEIGHT; j++) {
 				if(dungeonTiles.get(i * MAP_WIDTH + j).passable) {
@@ -101,11 +109,17 @@ public class broughGDX extends ApplicationAdapter {
 
 				nextX += SIZE;
 			}
-			nextX = 160;
+			nextX = 4 * SIZE;
 			nextY -= SIZE;
 		}
 
-		batch.draw(mainHero, mainHeroPosition.x, mainHeroPosition.y, 32, 32);
+		float heroWidth = 32;
+		float positionCorrection = 0;
+		int sign = isHeroFacingRight ? 1 : -1;
+		if (sign < 0) {
+			positionCorrection = SIZE;
+		}
+		batch.draw(mainHero, mainHeroPosition.x + positionCorrection, mainHeroPosition.y, sign * heroWidth, 32);
 		batch.end();
 	}
 	

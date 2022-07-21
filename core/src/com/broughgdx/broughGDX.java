@@ -11,23 +11,9 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-class Tile {
-	float x;
-	float y;
-	public boolean passable;
-
-	Tile(float _x, float _y, boolean _passable) {
-		this.x = _x;
-		this.y = _y;
-		this.passable = _passable;
-	}
-}
 
 public class broughGDX extends ApplicationAdapter {
 	static int SIZE = 32;
-	static int MAP_WIDTH = 12;
-	static int MAP_HEIGHT = 12;
-
 	SpriteBatch batch;
 	Texture allHeroes;
 	Texture environmentTexture;
@@ -38,7 +24,7 @@ public class broughGDX extends ApplicationAdapter {
 	Vector2 mainHeroPosition;
 	BroughInputProcessor myInputProcessor;
 
-	Array<Tile> dungeonTiles;
+	BroughDungeon theDungeon;
 	
 	@Override
 	public void create () {
@@ -54,26 +40,14 @@ public class broughGDX extends ApplicationAdapter {
 
 		mainHeroPosition = new Vector2(320, 320);
 
-		dungeonTiles = new Array<Tile>();
+		theDungeon = new BroughDungeon();
+		theDungeon.GenerateLevel();
+		// validating dungeon
+		// end of validating dungeon
 
-		// generating dungeon
-		for(int i = 0; i < MAP_WIDTH; i++) {
-			for(int j = 0; j < MAP_HEIGHT; j++) {
-				boolean passable = true;
-
-				if(MathUtils.random(1.0f) < 0.2f) {
-					passable = false;
-				}
-
-				if( i == 0 || j == 0 || i == MAP_WIDTH - 1 || j == MAP_HEIGHT - 1) {
-					passable = false;
-				}
-
-				dungeonTiles.add(new Tile(i * SIZE, j * SIZE, passable));
-			}
-		}
-
-		dungeonTiles.get(0).passable = false; // should be top-left?
+		BroughTile startingTile = theDungeon.RandomPassableTile();
+		mainHeroPosition.x = startingTile.x * SIZE;
+		mainHeroPosition.y = startingTile.y * SIZE;
 	}
 
 	@Override
@@ -97,22 +71,18 @@ public class broughGDX extends ApplicationAdapter {
 		batch.begin();
 
 		// rendering the map
-		float nextX = 4 * SIZE;
-		float nextY = 12 * SIZE;
-		for(int i = 0; i < MAP_WIDTH; i++) {
-			for(int j = 0; j < MAP_HEIGHT; j++) {
-				if(dungeonTiles.get(i * MAP_WIDTH + j).passable) {
-					batch.draw(floor, nextX, nextY, 32, 32);
+		Array<BroughTile> allTiles = theDungeon.GetTiles();
+		for(int i = 0; i < BroughDungeon.MAP_WIDTH; i++) {
+			for(int j = 0; j < BroughDungeon.MAP_HEIGHT; j++) {
+				if(allTiles.get(i * BroughDungeon.MAP_WIDTH + j).passable) {
+					batch.draw(floor, i * SIZE, j * SIZE, 32, 32);
 				} else {
-					batch.draw(wall, nextX, nextY, 32, 32);
+					batch.draw(wall, i * SIZE, j * SIZE, 32, 32);
 				}
-
-				nextX += SIZE;
 			}
-			nextX = 4 * SIZE;
-			nextY -= SIZE;
 		}
 
+		// rendering the hero
 		float heroWidth = 32;
 		float positionCorrection = 0;
 		int sign = isHeroFacingRight ? 1 : -1;

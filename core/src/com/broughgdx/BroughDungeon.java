@@ -29,6 +29,37 @@ public class BroughDungeon {
         }
     }
 
+    // returns the neighbor of a given tile on a given direction
+    BroughTile GetNeighbour(BroughTile tile, int dx, int dy) {
+        return GetTile(tile.x + dx, tile.y + dy);
+    }
+
+    // return all the adjacent neighbors of a tile
+    Array<BroughTile> GetAdjacentNeighbours(BroughTile tile) {
+        Array<BroughTile> tiles = new Array<BroughTile>();
+        tiles.add(GetNeighbour(tile, 0, -1));
+        tiles.add(GetNeighbour(tile, 0, 1));
+        tiles.add(GetNeighbour(tile, -1, 0));
+        tiles.add(GetNeighbour(tile, 1, 0));
+        return tiles;
+    }
+
+    // returns only passable adjacent neighbors
+    Array<BroughTile> GetAdjacentPassableNeighbours(BroughTile tile) {
+        Array<BroughTile> tiles = GetAdjacentNeighbours(tile);
+        Array<BroughTile> passable = new Array<BroughTile>();
+
+        for(int i = 0; i < tiles.size; i++) {
+            if(tiles.get(i).passable) {
+                passable.add(tiles.get(i));
+            }
+        }
+
+        return passable;
+    }
+
+    // TODO: GET CONNECTED TILES: picks a random starting tile and counts how many tiles are connected to it.
+
     BroughTile RandomPassableTile() {
         BroughTile t = new BroughTile(0, 0, false);
 

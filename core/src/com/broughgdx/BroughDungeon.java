@@ -2,6 +2,7 @@ package com.broughgdx;
 
 // a dungeon is basically just a set of tiles?!
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 
@@ -58,7 +59,33 @@ public class BroughDungeon {
         return passable;
     }
 
-    // TODO: GET CONNECTED TILES: picks a random starting tile and counts how many tiles are connected to it.
+    // GET CONNECTED TILES: picks a random starting tile and counts how many tiles are connected to it.
+    private int GetConnectedTiles() {
+        Array<BroughTile> connectedTiles = new Array<BroughTile>();
+        Array<BroughTile> frontier = new Array<BroughTile>();
+
+        int numConnectedTiles = 0;
+        frontier.add(RandomPassableTile());
+        while(frontier.size > 0) {
+            BroughTile tile = frontier.pop();
+            numConnectedTiles++;
+            connectedTiles.add(tile);
+
+            // 1. getting all neighbors
+            Array<BroughTile> neighbours = GetAdjacentPassableNeighbours(tile);
+
+            // 2. add all neighbours to the frontier, if they are not there and if they are not in the connected tiles
+            for(int i = 0; i < neighbours.size; i++) {
+                if(!frontier.contains(neighbours.get(i), true) && !connectedTiles.contains(neighbours.get(i), true)) {
+                    frontier.add(neighbours.get(i));
+                }
+            }
+        }
+
+        // 3. here we should have how much connected tiles we have!
+        Gdx.app.log("debug", "connected tiles: " + numConnectedTiles);
+        return numConnectedTiles;
+    }
 
     BroughTile RandomPassableTile() {
         BroughTile t = new BroughTile(0, 0, false);
@@ -79,7 +106,7 @@ public class BroughDungeon {
         return t;
     }
 
-    public void GenerateLevel() {
+    private int CreateLevel() {
         // generating dungeon
         if (dungeonTiles.size > 0) {
             dungeonTiles.clear();
@@ -104,6 +131,19 @@ public class BroughDungeon {
 
                 dungeonTiles.add(new BroughTile(i, j, passable));
             }
+        }
+
+        Gdx.app.log("debug", "passable tiles: " + passableTiles);
+        return passableTiles;
+    }
+
+    public void GenerateLevel() {
+        int numPassable = CreateLevel();
+        int numConnectedTiles = GetConnectedTiles();
+
+        while(numPassable != numConnectedTiles) {
+            numPassable = CreateLevel();
+            numConnectedTiles = GetConnectedTiles();
         }
     }
 

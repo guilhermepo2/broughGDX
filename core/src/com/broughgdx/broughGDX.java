@@ -42,8 +42,6 @@ public class broughGDX extends ApplicationAdapter {
 
 		theDungeon = new BroughDungeon();
 		theDungeon.GenerateLevel();
-		// validating dungeon
-		// end of validating dungeon
 
 		BroughTile startingTile = theDungeon.RandomPassableTile();
 		mainHeroPosition.x = startingTile.x * SIZE;

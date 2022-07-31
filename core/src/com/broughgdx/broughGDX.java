@@ -18,13 +18,21 @@ public class broughGDX extends ApplicationAdapter {
 	Texture allHeroes;
 	Texture environmentTexture;
 	TextureRegion mainHero;
-	boolean isHeroFacingRight;
+	// monsters
+	TextureRegion monsterBird;
+	TextureRegion monsterSnake;
+	TextureRegion monsterBlob;
+	TextureRegion monsterEater;
+	TextureRegion monsterJester;
 	TextureRegion wall;
 	TextureRegion floor;
-	Vector2 mainHeroPosition;
 	BroughInputProcessor myInputProcessor;
 
 	BroughDungeon theDungeon;
+
+	BroughMonster theHero;
+
+
 	
 	@Override
 	public void create () {
@@ -38,30 +46,64 @@ public class broughGDX extends ApplicationAdapter {
 		floor = new TextureRegion(environmentTexture, 32, 0, 8, 8);
 		wall = new TextureRegion(environmentTexture, 112, 96, 8, 8);
 
-		mainHeroPosition = new Vector2(320, 320);
+		monsterBird = new TextureRegion(allHeroes, 32, 104, 8, 8);
+		monsterSnake = new TextureRegion(allHeroes, 32, 96, 8, 8);
+		monsterBlob = new TextureRegion(allHeroes, 16, 88, 8, 8);
+		monsterEater = new TextureRegion(allHeroes, 80, 96, 8, 8);
+		monsterJester = new TextureRegion(allHeroes, 120, 88, 8, 8);
 
 		theDungeon = new BroughDungeon();
 		theDungeon.GenerateLevel();
 
+		Vector2 mainHeroPosition = new Vector2();
 		BroughTile startingTile = theDungeon.RandomPassableTile();
 		mainHeroPosition.x = startingTile.x * SIZE;
 		mainHeroPosition.y = startingTile.y * SIZE;
+
+		theHero = new BroughMonster(mainHero, mainHeroPosition, 3);
+	}
+
+	private void TryMove(BroughMonster actor, int dx, int dy) {
+
+		Vector2 desiredPosition = actor.Position();
+		int oldX = (int)(desiredPosition.x / SIZE);
+		int oldY = (int)(desiredPosition.y / SIZE);
+		BroughTile oldTile = theDungeon.GetTile(oldX, oldY);
+
+		int actualX = (int)( (desiredPosition.x + dx) / SIZE);
+		int actualY = (int)( (desiredPosition.y + dy) / SIZE);
+
+		BroughTile desiredTile = theDungeon.GetTile(actualX, actualY);
+
+		boolean didMove = false;
+		if(desiredTile.passable) {
+			if(desiredTile.monster == null) {
+				actor.Move(dx, dy);
+				didMove = true;
+			} else {
+				// todo: combat??
+				Gdx.app.log("debug", "combat?");
+			}
+		}
+
+		if(didMove) {
+			oldTile.monster = null;
+			desiredTile.monster = actor;
+		}
+
+		Gdx.app.log("debug", "new position" + actor.Position());
 	}
 
 	@Override
 	public void render () {
-		// Updating things... Isn't there a Render function?
-		// Handling Hero Movement
 		if(myInputProcessor.Left()) {
-			mainHeroPosition.x -= SIZE;
-			isHeroFacingRight = false;
+			TryMove(theHero, -SIZE, 0);
 		} else if(myInputProcessor.Right()) {
-			mainHeroPosition.x += SIZE;
-			isHeroFacingRight = true;
+			TryMove(theHero, SIZE, 0);
 		} else if(myInputProcessor.Up()) {
-			mainHeroPosition.y += SIZE;
+			TryMove(theHero, 0, SIZE);
 		} else if(myInputProcessor.Down()) {
-			mainHeroPosition.y -= SIZE;
+			TryMove(theHero, 0, -SIZE);
 		}
 
 		// actually drawing
@@ -69,10 +111,10 @@ public class broughGDX extends ApplicationAdapter {
 		batch.begin();
 
 		// rendering the map
-		Array<BroughTile> allTiles = theDungeon.GetTiles();
 		for(int i = 0; i < BroughDungeon.MAP_WIDTH; i++) {
 			for(int j = 0; j < BroughDungeon.MAP_HEIGHT; j++) {
-				if(allTiles.get(i * BroughDungeon.MAP_WIDTH + j).passable) {
+
+				if(theDungeon.GetTile(i, j).passable) {
 					batch.draw(floor, i * SIZE, j * SIZE, 32, 32);
 				} else {
 					batch.draw(wall, i * SIZE, j * SIZE, 32, 32);
@@ -81,13 +123,9 @@ public class broughGDX extends ApplicationAdapter {
 		}
 
 		// rendering the hero
-		float heroWidth = 32;
-		float positionCorrection = 0;
-		int sign = isHeroFacingRight ? 1 : -1;
-		if (sign < 0) {
-			positionCorrection = SIZE;
-		}
-		batch.draw(mainHero, mainHeroPosition.x + positionCorrection, mainHeroPosition.y, sign * heroWidth, 32);
+		Vector2 mainHeroPosition = theHero.Position();
+		batch.draw(mainHero, mainHeroPosition.x, mainHeroPosition.y, 32, 32);
+
 		batch.end();
 	}
 	

@@ -27,10 +27,10 @@ public class broughGDX extends ApplicationAdapter {
 	TextureRegion wall;
 	TextureRegion floor;
 	BroughInputProcessor myInputProcessor;
-
 	BroughDungeon theDungeon;
-
 	BroughMonster theHero;
+	Array<BroughMonster> monstersOnScene;
+
 
 
 	
@@ -55,12 +55,21 @@ public class broughGDX extends ApplicationAdapter {
 		theDungeon = new BroughDungeon();
 		theDungeon.GenerateLevel();
 
+		monstersOnScene = new Array<BroughMonster>();
+
 		Vector2 mainHeroPosition = new Vector2();
 		BroughTile startingTile = theDungeon.RandomPassableTile();
 		mainHeroPosition.x = startingTile.x * SIZE;
 		mainHeroPosition.y = startingTile.y * SIZE;
 
 		theHero = new BroughMonster(mainHero, mainHeroPosition, 3);
+		startingTile.monster = theHero;
+
+		// testing having a monster
+		BroughTile monsterTile = theDungeon.RandomPassableTile();
+		BroughMonster birdMonster = CreateBird(new Vector2(monsterTile.x * SIZE, monsterTile.y * SIZE));
+		monsterTile.monster = birdMonster;
+		monstersOnScene.add(birdMonster);
 	}
 
 	private void TryMove(BroughMonster actor, int dx, int dy) {
@@ -126,6 +135,12 @@ public class broughGDX extends ApplicationAdapter {
 		Vector2 mainHeroPosition = theHero.Position();
 		batch.draw(mainHero, mainHeroPosition.x, mainHeroPosition.y, 32, 32);
 
+		// rendering all monsters
+		for(int i = 0; i < monstersOnScene.size; i++) {
+			BroughMonster monster = monstersOnScene.get(i);
+			batch.draw(monster.Texture(), monster.Position().x, monster.Position().y, 32, 32);
+		}
+
 		batch.end();
 	}
 	
@@ -133,5 +148,13 @@ public class broughGDX extends ApplicationAdapter {
 	public void dispose () {
 		batch.dispose();
 		allHeroes.dispose();
+	}
+
+	// -----------------------------------------------------------------------------------------------
+	// Monster Factories
+	// -----------------------------------------------------------------------------------------------
+	public BroughMonster CreateBird(Vector2 position) {
+		BroughMonster newBird = new BroughMonster(monsterBird, position, 1);
+		return newBird;
 	}
 }

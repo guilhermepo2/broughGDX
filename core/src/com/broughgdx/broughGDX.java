@@ -3,7 +3,9 @@ package com.broughgdx;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
@@ -31,7 +33,7 @@ public class broughGDX extends ApplicationAdapter {
 	BroughMonster theHero;
 	Array<BroughMonster> monstersOnScene;
 
-
+	BitmapFont debugFont;
 
 	
 	@Override
@@ -57,22 +59,24 @@ public class broughGDX extends ApplicationAdapter {
 
 		monstersOnScene = new Array<BroughMonster>();
 
+		debugFont = new BitmapFont(Gdx.files.internal("aria-8l.fnt"), false);
+
 		Vector2 mainHeroPosition = new Vector2();
 		BroughTile startingTile = theDungeon.RandomPassableTile();
 		mainHeroPosition.x = startingTile.x * SIZE;
 		mainHeroPosition.y = startingTile.y * SIZE;
 
 		theHero = new BroughMonster(mainHero, mainHeroPosition, 3);
-		startingTile.monster = theHero;
+		TryMove(theHero, 0, 0);
 
 		// testing having a monster
 		BroughTile monsterTile = theDungeon.RandomPassableTile();
 		BroughMonster birdMonster = CreateBird(new Vector2(monsterTile.x * SIZE, monsterTile.y * SIZE));
-		monsterTile.monster = birdMonster;
 		monstersOnScene.add(birdMonster);
+		TryMove(birdMonster, 0, 0);
 	}
 
-	private void TryMove(BroughMonster actor, int dx, int dy) {
+	private boolean TryMove(BroughMonster actor, int dx, int dy) {
 
 		Vector2 desiredPosition = actor.Position();
 		int oldX = (int)(desiredPosition.x / SIZE);
@@ -100,19 +104,57 @@ public class broughGDX extends ApplicationAdapter {
 			desiredTile.monster = actor;
 		}
 
-		Gdx.app.log("debug", "new position" + actor.Position());
+		// Gdx.app.log("debug", "`new position`" + actor.Position());
+		return didMove;
+	}
+
+	private void RenderDebug() {
+		debugFont.setColor(Color.RED);
+		Array<BroughTile> allTiles = theDungeon.GetTiles();
+
+		for(int i = 0; i < allTiles.size; i++) {
+			if(allTiles.get(i).monster != null) {
+				// debugFont.draw(batch, "m", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+			}
+
+			// drawing passable/unpassable tiles
+			if(allTiles.get(i).passable) {
+				// debugFont.draw(batch, "0", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+			} else {
+				// debugFont.draw(batch, "1", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+			}
+		}
 	}
 
 	@Override
 	public void render () {
+		boolean playerMoved = false;
 		if(myInputProcessor.Left()) {
-			TryMove(theHero, -SIZE, 0);
+			playerMoved = TryMove(theHero, -SIZE, 0);
 		} else if(myInputProcessor.Right()) {
-			TryMove(theHero, SIZE, 0);
+			playerMoved = TryMove(theHero, SIZE, 0);
 		} else if(myInputProcessor.Up()) {
-			TryMove(theHero, 0, SIZE);
+			playerMoved = TryMove(theHero, 0, SIZE);
 		} else if(myInputProcessor.Down()) {
-			TryMove(theHero, 0, -SIZE);
+			playerMoved = TryMove(theHero, 0, -SIZE);
+		}
+
+		// if the player moved, then we have to move all the enemies as well!
+		if(playerMoved) {
+			for(int i = 0; i < monstersOnScene.size; i++) {
+				boolean willMoveVertically = MathUtils.randomBoolean();
+				boolean willMovePositive = MathUtils.randomBoolean();
+
+				int dx = willMoveVertically ? 0 : SIZE;
+				int dy = willMoveVertically ? SIZE : 0;
+
+				if(!willMovePositive) {
+					dx = -dx;
+					dy = -dy;
+				}
+
+				TryMove(monstersOnScene.get(i), dx, dy);
+			}
 		}
 
 		// actually drawing
@@ -123,10 +165,11 @@ public class broughGDX extends ApplicationAdapter {
 		for(int i = 0; i < BroughDungeon.MAP_WIDTH; i++) {
 			for(int j = 0; j < BroughDungeon.MAP_HEIGHT; j++) {
 
+				BroughTile tile = theDungeon.GetTile(i, j);
 				if(theDungeon.GetTile(i, j).passable) {
-					batch.draw(floor, i * SIZE, j * SIZE, 32, 32);
+					batch.draw(floor, tile.x * SIZE, tile.y * SIZE, 32, 32);
 				} else {
-					batch.draw(wall, i * SIZE, j * SIZE, 32, 32);
+					batch.draw(wall, tile.x * SIZE, tile.y * SIZE, 32, 32);
 				}
 			}
 		}
@@ -140,6 +183,9 @@ public class broughGDX extends ApplicationAdapter {
 			BroughMonster monster = monstersOnScene.get(i);
 			batch.draw(monster.Texture(), monster.Position().x, monster.Position().y, 32, 32);
 		}
+
+		// some debug
+		RenderDebug();
 
 		batch.end();
 	}

@@ -23,11 +23,28 @@ public class BroughDungeon {
     }
 
     BroughTile GetTile(int x, int y) {
+
+        for(int i = 0; i < dungeonTiles.size; i++) {
+            BroughTile theTile = dungeonTiles.get(i);
+
+            if(theTile.x == x && theTile.y == y) {
+                return theTile;
+            }
+        }
+
+        return new BroughTile(x, y, false);
+
+        // this old solution was returning inverted... ? so let's just to a linear search
+        /*
         if(IsInBounds(x, y)) {
+            BroughTile theTile = dungeonTiles.get(y * MAP_WIDTH + x);
+            Gdx.app.log("brough dungeon", "the tile input (x,y) :(" + x + ", " + y + ")");
+            Gdx.app.log("brough dungeon", "the tile internal pos (x,y) :(" + theTile.x + ", " + theTile.y + ")");
             return dungeonTiles.get(y * MAP_WIDTH + x);
         } else {
             return new BroughTile(x, y, false);
         }
+        */
     }
 
     // returns the neighbor of a given tile on a given direction

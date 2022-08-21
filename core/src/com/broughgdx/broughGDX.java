@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g3d.particles.influencers.ColorInfluencer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
@@ -20,7 +21,9 @@ public class broughGDX extends ApplicationAdapter {
 	Texture allHeroes;
 	Texture environmentTexture;
 	TextureRegion mainHero;
+
 	// monsters
+	private int MonsterTotal = 5;
 	TextureRegion monsterBird;
 	TextureRegion monsterSnake;
 	TextureRegion monsterBlob;
@@ -34,7 +37,6 @@ public class broughGDX extends ApplicationAdapter {
 	Array<BroughMonster> monstersOnScene;
 
 	BitmapFont debugFont;
-
 	
 	@Override
 	public void create () {
@@ -69,11 +71,7 @@ public class broughGDX extends ApplicationAdapter {
 		theHero = new BroughMonster(mainHero, mainHeroPosition, 3);
 		TryMove(theHero, 0, 0);
 
-		// testing having a monster
-		BroughTile monsterTile = theDungeon.RandomPassableTile();
-		BroughMonster birdMonster = CreateBird(new Vector2(monsterTile.x * SIZE, monsterTile.y * SIZE));
-		monstersOnScene.add(birdMonster);
-		TryMove(birdMonster, 0, 0);
+		SpawnRandomMonsterAtRandomPosition();
 	}
 
 	private boolean TryMove(BroughMonster actor, int dx, int dy) {
@@ -199,8 +197,57 @@ public class broughGDX extends ApplicationAdapter {
 	// -----------------------------------------------------------------------------------------------
 	// Monster Factories
 	// -----------------------------------------------------------------------------------------------
+	public void SpawnRandomMonsterAtRandomPosition() {
+		BroughTile monsterTile = theDungeon.RandomPassableTile();
+		BroughMonster themMonster = CreateRandomMonster(new Vector2(monsterTile.x * SIZE, monsterTile.y * SIZE));
+		monstersOnScene.add(themMonster);
+		TryMove(themMonster, 0, 0);
+	}
+
+	// todo: I don't really like this, the best way is to have a "template" mosnter for each monster
+	// todo: and then I can have a "monster bag" and just return a copy from a random one in the bag
+	// todo: This will work for now though.
+	public BroughMonster CreateRandomMonster(Vector2 position) {
+		int randomMonster = MathUtils.random(MonsterTotal);
+
+		switch(randomMonster) {
+			case 0:
+				return CreateBird(position);
+			case 1:
+				return CreateBlob(position);
+			case 2:
+				return CreateEater(position);
+			case 3:
+				return CreateJester(position);
+			case 4:
+				return CreateSnake(position);
+		}
+
+		return CreateBird(position);
+	}
+
 	public BroughMonster CreateBird(Vector2 position) {
 		BroughMonster newBird = new BroughMonster(monsterBird, position, 1);
 		return newBird;
+	}
+
+	public BroughMonster CreateSnake(Vector2 position) {
+		BroughMonster newSnake = new BroughMonster(monsterSnake, position, 1);
+		return newSnake;
+	}
+
+	public BroughMonster CreateBlob(Vector2 position) {
+		BroughMonster newBlob = new BroughMonster(monsterBlob, position, 1);
+		return newBlob;
+	}
+
+	public BroughMonster CreateJester(Vector2 position) {
+		BroughMonster newJester = new BroughMonster(monsterJester, position, 1);
+		return newJester;
+	}
+
+	public BroughMonster CreateEater(Vector2 position) {
+		BroughMonster newEater = new BroughMonster(monsterEater, position, 1);
+		return newEater;
 	}
 }

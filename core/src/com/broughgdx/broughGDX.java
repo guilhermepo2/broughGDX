@@ -20,6 +20,8 @@ public class broughGDX extends ApplicationAdapter {
 	SpriteBatch batch;
 	Texture allHeroes;
 	Texture environmentTexture;
+	Texture objectTexture;
+
 	TextureRegion mainHero;
 
 	// monsters
@@ -31,6 +33,8 @@ public class broughGDX extends ApplicationAdapter {
 	TextureRegion monsterJester;
 	TextureRegion wall;
 	TextureRegion floor;
+	TextureRegion uiHeart;
+
 	BroughInputProcessor myInputProcessor;
 	BroughDungeon theDungeon;
 	BroughMonster theHero;
@@ -46,9 +50,12 @@ public class broughGDX extends ApplicationAdapter {
 		batch = new SpriteBatch();
 		allHeroes = new Texture("lofi_char.png");
 		environmentTexture = new Texture("lofi_environment.png");
+		objectTexture = new Texture("lofi_obj.png");
+
 		mainHero = new TextureRegion(allHeroes, 0, 0, 8, 8);
 		floor = new TextureRegion(environmentTexture, 32, 0, 8, 8);
 		wall = new TextureRegion(environmentTexture, 112, 96, 8, 8);
+		uiHeart = new TextureRegion(objectTexture, 120, 56, 8, 8);
 
 		monsterBird = new TextureRegion(allHeroes, 32, 104, 8, 8);
 		monsterSnake = new TextureRegion(allHeroes, 32, 96, 8, 8);
@@ -172,15 +179,32 @@ public class broughGDX extends ApplicationAdapter {
 			}
 		}
 
-		// rendering the hero
-		Vector2 mainHeroPosition = theHero.Position();
-		batch.draw(mainHero, mainHeroPosition.x, mainHeroPosition.y, 32, 32);
+		int uiHeartSize = 16;
+		int uiHeartHorizontalOffset_start = -3;
+		int uiHeartVerticalOffset_start = -10;
+		int uiHeartHorizontalOffset = 12;
+		int uiHeartVerticalOffset = 12;
 
 		// rendering all monsters
 		for(int i = 0; i < monstersOnScene.size; i++) {
 			BroughMonster monster = monstersOnScene.get(i);
 			batch.draw(monster.Texture(), monster.Position().x, monster.Position().y, 32, 32);
+
+			int monsterHP = monster.HP();
+			for(int j = 0; j < monsterHP; j++) {
+				batch.draw(uiHeart, uiHeartHorizontalOffset_start + monster.Position().x + (i%3 * uiHeartHorizontalOffset), uiHeartVerticalOffset_start + monster.Position().y + ((i / 3) * uiHeartVerticalOffset), uiHeartSize, uiHeartSize);
+			}
 		}
+
+		// rendering the hero
+		Vector2 mainHeroPosition = theHero.Position();
+		batch.draw(mainHero, mainHeroPosition.x, mainHeroPosition.y, 32, 32);
+		int mainHeroHP = theHero.HP();
+		for(int i = 0; i < mainHeroHP; i++) {
+			batch.draw(uiHeart, uiHeartHorizontalOffset_start + mainHeroPosition.x + (i%3 * uiHeartHorizontalOffset), uiHeartVerticalOffset_start + mainHeroPosition.y - ((i / 3) * uiHeartVerticalOffset), uiHeartSize, uiHeartSize);
+		}
+
+
 
 		// some debug
 		RenderDebug();

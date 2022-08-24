@@ -159,6 +159,8 @@ public class broughGDX extends ApplicationAdapter {
 
 	@Override
 	public void render () {
+
+		// Update
 		boolean playerMoved = false;
 		if(myInputProcessor.Left()) {
 			playerMoved = TryMove(theHero, -SIZE, 0);

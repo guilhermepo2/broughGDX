@@ -88,6 +88,10 @@ public class broughGDX extends ApplicationAdapter {
 		if(attacker.IsPlayer() != defending.IsPlayer()) {
 			defending.DealDamage(1); // ... that's it?
 
+			if(attacker.IsPlayer()) {
+				defending.Stun(true);
+			}
+
 			if(defending.HP() <= 0) {
 				if(!defending.IsPlayer()) {
 					Vector2 defendingTilePosition = defending.Position();
@@ -186,7 +190,11 @@ public class broughGDX extends ApplicationAdapter {
 					dy = -dy;
 				}
 
-				TryMove(monstersOnScene.get(i), dx, dy);
+				if(!monstersOnScene.get(i).Stunned()) {
+					TryMove(monstersOnScene.get(i), dx, dy);
+				} else {
+					monstersOnScene.get(i).Stun(false);
+				}
 			}
 		}
 

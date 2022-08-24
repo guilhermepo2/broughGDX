@@ -15,6 +15,9 @@ public class BroughMonster {
     public TextureRegion Texture() { return m_monsterTexture;}
     private boolean m_isPlayer;
     public boolean IsPlayer() { return m_isPlayer;}
+    private boolean m_stunned;
+    public boolean Stunned() { return m_stunned; }
+    public void Stun(boolean value) { m_stunned = value; }
 
     BroughMonster(TextureRegion monsterTexture, Vector2 position, int hp) {
         this.m_position = position;

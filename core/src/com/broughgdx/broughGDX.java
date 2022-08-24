@@ -179,22 +179,7 @@ public class broughGDX extends ApplicationAdapter {
 		// if the player moved, then we have to move all the enemies as well!
 		if(playerMoved) {
 			for(int i = 0; i < monstersOnScene.size; i++) {
-				boolean willMoveVertically = MathUtils.randomBoolean();
-				boolean willMovePositive = MathUtils.randomBoolean();
-
-				int dx = willMoveVertically ? 0 : SIZE;
-				int dy = willMoveVertically ? SIZE : 0;
-
-				if(!willMovePositive) {
-					dx = -dx;
-					dy = -dy;
-				}
-
-				if(!monstersOnScene.get(i).Stunned()) {
-					TryMove(monstersOnScene.get(i), dx, dy);
-				} else {
-					monstersOnScene.get(i).Stun(false);
-				}
+				MoveAIMonster(monstersOnScene.get(i));
 			}
 		}
 
@@ -265,6 +250,81 @@ public class broughGDX extends ApplicationAdapter {
 	}
 
 	// -----------------------------------------------------------------------------------------------
+	// Dealing with AI
+	// -----------------------------------------------------------------------------------------------
+	private void MoveAIMonster(BroughMonster monster) {
+		int dx = 0;
+		int dy = 0;
+		int tileX = (int)(monster.Position().x / SIZE);
+		int tileY = (int)(monster.Position().y / SIZE);
+		BroughTile monsterCurrentTile = theDungeon.GetTile(tileX, tileY);
+
+
+		switch(monster.Type()) {
+			case EATER: // todo: should eat walls to recover HP!
+			case SNAKE: // #todo: should move twice!!
+			case TANK:
+			case BIRD:
+				BroughTile moveTo = GetOneCloserToPlayer(monster);
+				dx = (moveTo.x - monsterCurrentTile.x) * SIZE;
+				dy = (moveTo.y - monsterCurrentTile.y) * SIZE;
+				break;
+			case JESTER:
+				boolean willMoveVertically = MathUtils.randomBoolean();
+				boolean willMovePositive = MathUtils.randomBoolean();
+
+				dx = willMoveVertically ? 0 : SIZE;
+				dy = willMoveVertically ? SIZE : 0;
+
+				if(!willMovePositive) {
+					dx = -dx;
+					dy = -dy;
+				}
+				break;
+		}
+
+		if(!monster.Stunned()) {
+			TryMove(monster, dx, dy);
+
+			if(monster.Type() == BroughMonster.MonsterType.TANK) {
+				monster.Stun(true);
+			}
+		} else {
+			monster.Stun(false);
+		}
+
+	}
+
+	private BroughTile GetOneCloserToPlayer(BroughMonster monster) {
+		int tileX = (int)(monster.Position().x / SIZE);
+		int tileY = (int)(monster.Position().y / SIZE);
+		BroughTile monsterCurrentTile = theDungeon.GetTile(tileX, tileY);
+		// Gdx.app.log("onecloser", "tileX/tileY: (" + tileX + ", " + tileY + ")");
+		// Gdx.app.log("onecloser", "monster current: (" + monsterCurrentTile.x + ", " + monsterCurrentTile.y + ")");
+
+		Array<BroughTile> passableNeighbours = theDungeon.GetAdjacentPassableNeighbours(monsterCurrentTile);
+		if(passableNeighbours.size > 0) {
+			BroughTile chosenTile = passableNeighbours.get(0);
+			int distanceToHero = BroughUtils.ManhattanDistance(new Vector2(chosenTile.x * SIZE, chosenTile.y * SIZE), theHero.Position());
+			// Gdx.app.log("onecloser", "monster current: (" + monsterCurrentTile.x + ", " + monsterCurrentTile.y + ")");
+
+			for(int i = 0; i < passableNeighbours.size; i++) {
+				Vector2 tilePosition = new Vector2(passableNeighbours.get(i).x * SIZE, passableNeighbours.get(i).y * SIZE);
+				int distance = BroughUtils.ManhattanDistance(tilePosition, theHero.Position());
+
+				if(distance < distanceToHero) {
+					chosenTile = passableNeighbours.get(i);
+					distanceToHero = distance;
+				}
+			}
+
+			return chosenTile;
+		}
+
+		return null;
+	}
+
+	// -----------------------------------------------------------------------------------------------
 	// Monster Factories
 	// -----------------------------------------------------------------------------------------------
 	public void SpawnRandomMonsterAtRandomPosition() {
@@ -297,27 +357,27 @@ public class broughGDX extends ApplicationAdapter {
 	}
 
 	public BroughMonster CreateBird(Vector2 position) {
-		BroughMonster newBird = new BroughMonster(monsterBird, position, 1);
+		BroughMonster newBird = new BroughMonster(monsterBird, position, 1, BroughMonster.MonsterType.BIRD);
 		return newBird;
 	}
 
 	public BroughMonster CreateSnake(Vector2 position) {
-		BroughMonster newSnake = new BroughMonster(monsterSnake, position, 1);
+		BroughMonster newSnake = new BroughMonster(monsterSnake, position, 1, BroughMonster.MonsterType.SNAKE);
 		return newSnake;
 	}
 
 	public BroughMonster CreateBlob(Vector2 position) {
-		BroughMonster newBlob = new BroughMonster(monsterBlob, position, 2);
+		BroughMonster newBlob = new BroughMonster(monsterBlob, position, 2, BroughMonster.MonsterType.TANK);
 		return newBlob;
 	}
 
 	public BroughMonster CreateJester(Vector2 position) {
-		BroughMonster newJester = new BroughMonster(monsterJester, position, 2);
+		BroughMonster newJester = new BroughMonster(monsterJester, position, 2, BroughMonster.MonsterType.JESTER);
 		return newJester;
 	}
 
 	public BroughMonster CreateEater(Vector2 position) {
-		BroughMonster newEater = new BroughMonster(monsterEater, position, 1);
+		BroughMonster newEater = new BroughMonster(monsterEater, position, 1, BroughMonster.MonsterType.EATER);
 		return newEater;
 	}
 }

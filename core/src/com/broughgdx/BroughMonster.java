@@ -4,6 +4,18 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 
 public class BroughMonster {
+    // used for AI purposes
+    // ideally there should be a better way to create modular behavior
+    // mapping enum => function is a way
+    // when creating a new class for every monster seems a bit too much
+    public enum MonsterType {
+        BIRD,
+        SNAKE,
+        TANK,
+        EATER,
+        JESTER
+    }
+
     private boolean m_isFacingRight;
     public boolean Right() { return m_isFacingRight; }
 
@@ -19,11 +31,15 @@ public class BroughMonster {
     public boolean Stunned() { return m_stunned; }
     public void Stun(boolean value) { m_stunned = value; }
 
-    BroughMonster(TextureRegion monsterTexture, Vector2 position, int hp) {
+    private MonsterType m_monsterType;
+    public MonsterType Type() { return m_monsterType; }
+
+    BroughMonster(TextureRegion monsterTexture, Vector2 position, int hp, MonsterType type) {
         this.m_position = position;
         this.m_hp = hp;
         this.m_monsterTexture = monsterTexture;
         this.m_isPlayer = false;
+        this.m_monsterType = type;
     }
 
     BroughMonster(TextureRegion monsterTexture, Vector2 position, int hp, boolean isPlayer) {

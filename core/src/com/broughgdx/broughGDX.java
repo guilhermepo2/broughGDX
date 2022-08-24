@@ -75,10 +75,37 @@ public class broughGDX extends ApplicationAdapter {
 		mainHeroPosition.x = startingTile.x * SIZE;
 		mainHeroPosition.y = startingTile.y * SIZE;
 
-		theHero = new BroughMonster(mainHero, mainHeroPosition, 3);
+		theHero = new BroughMonster(mainHero, mainHeroPosition, 3, true);
 		TryMove(theHero, 0, 0);
 
 		SpawnRandomMonsterAtRandomPosition();
+	}
+
+	private boolean ResolveCombat(BroughMonster attacker, BroughMonster defending) {
+
+		// players can't attack players ( if we ever have more than 1)
+		// monsters can't attack monsters, duh.
+		if(attacker.IsPlayer() != defending.IsPlayer()) {
+			defending.DealDamage(1); // ... that's it?
+
+			if(defending.HP() <= 0) {
+				if(!defending.IsPlayer()) {
+					Vector2 defendingTilePosition = defending.Position();
+					int tileX = (int)(defendingTilePosition.x / SIZE);
+					int tileY = (int)(defendingTilePosition.y / SIZE);
+					BroughTile defendingTile = theDungeon.GetTile(tileX, tileY);
+					defendingTile.monster = null;
+					monstersOnScene.removeValue(defending, true);
+				} else {
+					// todo: game over
+				}
+
+			}
+
+			return true;
+		}
+
+		return false;
 	}
 
 	private boolean TryMove(BroughMonster actor, int dx, int dy) {
@@ -99,8 +126,7 @@ public class broughGDX extends ApplicationAdapter {
 				actor.Move(dx, dy);
 				didMove = true;
 			} else {
-				// todo: combat??
-				Gdx.app.log("debug", "combat?");
+				ResolveCombat(actor, desiredTile.monster);
 			}
 		}
 
@@ -192,7 +218,12 @@ public class broughGDX extends ApplicationAdapter {
 
 			int monsterHP = monster.HP();
 			for(int j = 0; j < monsterHP; j++) {
-				batch.draw(uiHeart, uiHeartHorizontalOffset_start + monster.Position().x + (i%3 * uiHeartHorizontalOffset), uiHeartVerticalOffset_start + monster.Position().y + ((i / 3) * uiHeartVerticalOffset), uiHeartSize, uiHeartSize);
+				batch.draw(uiHeart,
+						uiHeartHorizontalOffset_start + monster.Position().x + (j%3 * uiHeartHorizontalOffset),
+						uiHeartVerticalOffset_start + monster.Position().y - ((j / 3) * uiHeartVerticalOffset),
+						uiHeartSize,
+						uiHeartSize
+				);
 			}
 		}
 
@@ -201,7 +232,12 @@ public class broughGDX extends ApplicationAdapter {
 		batch.draw(mainHero, mainHeroPosition.x, mainHeroPosition.y, 32, 32);
 		int mainHeroHP = theHero.HP();
 		for(int i = 0; i < mainHeroHP; i++) {
-			batch.draw(uiHeart, uiHeartHorizontalOffset_start + mainHeroPosition.x + (i%3 * uiHeartHorizontalOffset), uiHeartVerticalOffset_start + mainHeroPosition.y - ((i / 3) * uiHeartVerticalOffset), uiHeartSize, uiHeartSize);
+			batch.draw(uiHeart,
+					uiHeartHorizontalOffset_start + mainHeroPosition.x + (i%3 * uiHeartHorizontalOffset),
+					uiHeartVerticalOffset_start + mainHeroPosition.y - ((i / 3) * uiHeartVerticalOffset),
+					uiHeartSize,
+					uiHeartSize
+			);
 		}
 
 
@@ -261,12 +297,12 @@ public class broughGDX extends ApplicationAdapter {
 	}
 
 	public BroughMonster CreateBlob(Vector2 position) {
-		BroughMonster newBlob = new BroughMonster(monsterBlob, position, 1);
+		BroughMonster newBlob = new BroughMonster(monsterBlob, position, 2);
 		return newBlob;
 	}
 
 	public BroughMonster CreateJester(Vector2 position) {
-		BroughMonster newJester = new BroughMonster(monsterJester, position, 1);
+		BroughMonster newJester = new BroughMonster(monsterJester, position, 2);
 		return newJester;
 	}
 

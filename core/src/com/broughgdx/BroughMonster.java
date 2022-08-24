@@ -13,11 +13,21 @@ public class BroughMonster {
     public int HP() { return m_hp; }
     private TextureRegion m_monsterTexture;
     public TextureRegion Texture() { return m_monsterTexture;}
+    private boolean m_isPlayer;
+    public boolean IsPlayer() { return m_isPlayer;}
 
     BroughMonster(TextureRegion monsterTexture, Vector2 position, int hp) {
         this.m_position = position;
         this.m_hp = hp;
         this.m_monsterTexture = monsterTexture;
+        this.m_isPlayer = false;
+    }
+
+    BroughMonster(TextureRegion monsterTexture, Vector2 position, int hp, boolean isPlayer) {
+        this.m_position = position;
+        this.m_hp = hp;
+        this.m_monsterTexture = monsterTexture;
+        this.m_isPlayer = isPlayer;
     }
 
     public void Move(int dx, int dy) {
@@ -26,5 +36,9 @@ public class BroughMonster {
         }
         m_position.x += dx;
         m_position.y += dy;
+    }
+
+    public void DealDamage(int amount) {
+        m_hp -= amount;
     }
 }

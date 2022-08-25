@@ -34,12 +34,17 @@ public class BroughMonster {
     private MonsterType m_monsterType;
     public MonsterType Type() { return m_monsterType; }
 
+    private int m_teleportCount;
+    public int TeleportCount() { return m_teleportCount; }
+
     BroughMonster(TextureRegion monsterTexture, Vector2 position, int hp, MonsterType type) {
         this.m_position = position;
         this.m_hp = hp;
         this.m_monsterTexture = monsterTexture;
         this.m_isPlayer = false;
         this.m_monsterType = type;
+
+        m_teleportCount = 2;
     }
 
     BroughMonster(TextureRegion monsterTexture, Vector2 position, int hp, boolean isPlayer) {
@@ -47,6 +52,10 @@ public class BroughMonster {
         this.m_hp = hp;
         this.m_monsterTexture = monsterTexture;
         this.m_isPlayer = isPlayer;
+
+        if(m_isPlayer) {
+            m_teleportCount = 0;
+        }
     }
 
     public void Move(int dx, int dy) {
@@ -60,4 +69,5 @@ public class BroughMonster {
     public void DealDamage(int amount) {
         m_hp -= amount;
     }
+    public void TickTeleportCount() { m_teleportCount -= 1; }
 }

@@ -22,6 +22,7 @@ public class broughGDX extends ApplicationAdapter {
 	Texture environmentTexture;
 	Texture objectTexture;
 
+
 	TextureRegion mainHero;
 
 	// monsters
@@ -34,6 +35,8 @@ public class broughGDX extends ApplicationAdapter {
 	TextureRegion wall;
 	TextureRegion floor;
 	TextureRegion uiHeart;
+
+	TextureRegion monsterSpawnPortal;
 
 	BroughInputProcessor myInputProcessor;
 	BroughDungeon theDungeon;
@@ -61,6 +64,7 @@ public class broughGDX extends ApplicationAdapter {
 		floor = new TextureRegion(environmentTexture, 32, 0, 8, 8);
 		wall = new TextureRegion(environmentTexture, 112, 96, 8, 8);
 		uiHeart = new TextureRegion(objectTexture, 120, 56, 8, 8);
+		monsterSpawnPortal = new TextureRegion(objectTexture, 112, 32, 8, 8);
 
 		monsterBird = new TextureRegion(allHeroes, 32, 104, 8, 8);
 		monsterSnake = new TextureRegion(allHeroes, 32, 96, 8, 8);
@@ -118,7 +122,6 @@ public class broughGDX extends ApplicationAdapter {
 	}
 
 	private boolean TryMove(BroughMonster actor, int dx, int dy) {
-
 		Vector2 desiredPosition = actor.Position();
 		int oldX = (int)(desiredPosition.x / SIZE);
 		int oldY = (int)(desiredPosition.y / SIZE);
@@ -223,16 +226,20 @@ public class broughGDX extends ApplicationAdapter {
 		// rendering all monsters
 		for(int i = 0; i < monstersOnScene.size; i++) {
 			BroughMonster monster = monstersOnScene.get(i);
-			batch.draw(monster.Texture(), monster.Position().x, monster.Position().y, 32, 32);
+			if(monster.TeleportCount() <= 0) {
+				batch.draw(monster.Texture(), monster.Position().x, monster.Position().y, 32, 32);
 
-			int monsterHP = monster.HP();
-			for(int j = 0; j < monsterHP; j++) {
-				batch.draw(uiHeart,
-						uiHeartHorizontalOffset_start + monster.Position().x + (j%3 * uiHeartHorizontalOffset),
-						uiHeartVerticalOffset_start + monster.Position().y - ((j / 3) * uiHeartVerticalOffset),
-						uiHeartSize,
-						uiHeartSize
-				);
+				int monsterHP = monster.HP();
+				for(int j = 0; j < monsterHP; j++) {
+					batch.draw(uiHeart,
+							uiHeartHorizontalOffset_start + monster.Position().x + (j%3 * uiHeartHorizontalOffset),
+							uiHeartVerticalOffset_start + monster.Position().y - ((j / 3) * uiHeartVerticalOffset),
+							uiHeartSize,
+							uiHeartSize
+					);
+				}
+			} else {
+				batch.draw(monsterSpawnPortal, monster.Position().x, monster.Position().y, 32, 32);
 			}
 		}
 
@@ -267,6 +274,13 @@ public class broughGDX extends ApplicationAdapter {
 	// Dealing with AI
 	// -----------------------------------------------------------------------------------------------
 	private void MoveAIMonster(BroughMonster monster) {
+		Gdx.app.log("onecloser", "tp count: " + monster.TeleportCount());
+
+		if(monster.TeleportCount() > 0) {
+			monster.TickTeleportCount();
+			return;
+		}
+
 		int dx = 0;
 		int dy = 0;
 		int tileX = (int)(monster.Position().x / SIZE);

@@ -40,6 +40,11 @@ public class broughGDX extends ApplicationAdapter {
 	BroughMonster theHero;
 	Array<BroughMonster> monstersOnScene;
 
+	// ----------------------------------------
+	// Spawning Monsters as the game goes on
+	private int m_spawnRate = 15;
+	private int m_spawnCounter = m_spawnRate;
+
 	BitmapFont debugFont;
 	
 	@Override
@@ -125,12 +130,14 @@ public class broughGDX extends ApplicationAdapter {
 		BroughTile desiredTile = theDungeon.GetTile(actualX, actualY);
 
 		boolean didMove = false;
+		boolean didCombat = false;
 		if(desiredTile.passable) {
 			if(desiredTile.monster == null) {
 				actor.Move(dx, dy);
 				didMove = true;
 			} else {
 				ResolveCombat(actor, desiredTile.monster);
+				didCombat = true;
 			}
 		}
 
@@ -140,7 +147,7 @@ public class broughGDX extends ApplicationAdapter {
 		}
 
 		// Gdx.app.log("debug", "`new position`" + actor.Position());
-		return didMove;
+		return didMove || didCombat;
 	}
 
 	private void RenderDebug() {
@@ -180,6 +187,13 @@ public class broughGDX extends ApplicationAdapter {
 		if(playerMoved) {
 			for(int i = 0; i < monstersOnScene.size; i++) {
 				MoveAIMonster(monstersOnScene.get(i));
+			}
+
+			m_spawnCounter -= 1;
+			if(m_spawnCounter < 0) {
+				SpawnRandomMonsterAtRandomPosition();
+				m_spawnCounter = m_spawnRate;
+				m_spawnRate -= 1;
 			}
 		}
 

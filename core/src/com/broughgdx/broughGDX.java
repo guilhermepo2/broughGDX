@@ -37,10 +37,12 @@ public class broughGDX extends ApplicationAdapter {
 	TextureRegion uiHeart;
 
 	TextureRegion monsterSpawnPortal;
+	TextureRegion pickupTexture;
 
 	BroughInputProcessor myInputProcessor;
 	BroughDungeon theDungeon;
 	BroughMonster theHero;
+	private int m_playerScore = 0;
 	Array<BroughMonster> monstersOnScene;
 
 	// ----------------------------------------
@@ -65,6 +67,7 @@ public class broughGDX extends ApplicationAdapter {
 		wall = new TextureRegion(environmentTexture, 112, 96, 8, 8);
 		uiHeart = new TextureRegion(objectTexture, 120, 56, 8, 8);
 		monsterSpawnPortal = new TextureRegion(objectTexture, 112, 32, 8, 8);
+		pickupTexture = new TextureRegion(objectTexture, 56, 0, 8, 8);
 
 		monsterBird = new TextureRegion(allHeroes, 32, 104, 8, 8);
 		monsterSnake = new TextureRegion(allHeroes, 32, 96, 8, 8);
@@ -88,6 +91,10 @@ public class broughGDX extends ApplicationAdapter {
 		TryMove(theHero, 0, 0);
 
 		SpawnRandomMonsterAtRandomPosition();
+
+		for(int i = 0; i < 2; i++) {
+			theDungeon.RandomPassableTile().hasTreasure = true;
+		}
 	}
 
 	private boolean ResolveCombat(BroughMonster attacker, BroughMonster defending) {
@@ -147,6 +154,14 @@ public class broughGDX extends ApplicationAdapter {
 		if(didMove) {
 			oldTile.monster = null;
 			desiredTile.monster = actor;
+
+			// checking for treasures
+			if(actor.IsPlayer() && desiredTile.hasTreasure) {
+				// todo: play SFX
+				desiredTile.hasTreasure = false;
+				m_playerScore += 1;
+				Gdx.app.log("debug", "player score: " + m_playerScore);
+			}
 		}
 
 		// Gdx.app.log("debug", "`new position`" + actor.Position());
@@ -211,6 +226,10 @@ public class broughGDX extends ApplicationAdapter {
 				BroughTile tile = theDungeon.GetTile(i, j);
 				if(theDungeon.GetTile(i, j).passable) {
 					batch.draw(floor, tile.x * SIZE, tile.y * SIZE, 32, 32);
+
+					if(tile.hasTreasure) {
+						batch.draw(pickupTexture, (tile.x * SIZE) + 4, (tile.y * SIZE) + 4, 24, 24);
+					}
 				} else {
 					batch.draw(wall, tile.x * SIZE, tile.y * SIZE, 32, 32);
 				}
@@ -256,8 +275,6 @@ public class broughGDX extends ApplicationAdapter {
 			);
 		}
 
-
-
 		// some debug
 		RenderDebug();
 
@@ -274,7 +291,6 @@ public class broughGDX extends ApplicationAdapter {
 	// Dealing with AI
 	// -----------------------------------------------------------------------------------------------
 	private void MoveAIMonster(BroughMonster monster) {
-		Gdx.app.log("onecloser", "tp count: " + monster.TeleportCount());
 
 		if(monster.TeleportCount() > 0) {
 			monster.TickTeleportCount();

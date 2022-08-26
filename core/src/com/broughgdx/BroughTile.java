@@ -5,6 +5,7 @@ public class BroughTile {
     public int y;
     public boolean passable;
     public BroughMonster monster;
+    public boolean hasTreasure;
 
     BroughTile(int _x, int _y, boolean _passable) {
         this.x = _x;

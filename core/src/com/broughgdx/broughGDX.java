@@ -2,13 +2,11 @@ package com.broughgdx;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.g3d.particles.influencers.ColorInfluencer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
@@ -51,6 +49,7 @@ public class broughGDX extends ApplicationAdapter {
 	private int m_spawnCounter = m_spawnRate;
 
 	BitmapFont debugFont;
+	BitmapFont kenneyMiniSquareMono;
 	
 	@Override
 	public void create () {
@@ -81,6 +80,7 @@ public class broughGDX extends ApplicationAdapter {
 		monstersOnScene = new Array<BroughMonster>();
 
 		debugFont = new BitmapFont(Gdx.files.internal("aria-8l.fnt"), false);
+		kenneyMiniSquareMono = new BitmapFont(Gdx.files.internal("kenney_mini_square_mono-24.fnt"), false);
 
 		Vector2 mainHeroPosition = new Vector2();
 		BroughTile startingTile = theDungeon.RandomPassableTile();
@@ -186,10 +186,8 @@ public class broughGDX extends ApplicationAdapter {
 		}
 	}
 
-	@Override
-	public void render () {
-
-		// Update
+	private void Update() {
+		// Moving the Player
 		boolean playerMoved = false;
 		if(myInputProcessor.Left()) {
 			playerMoved = TryMove(theHero, -SIZE, 0);
@@ -201,7 +199,7 @@ public class broughGDX extends ApplicationAdapter {
 			playerMoved = TryMove(theHero, 0, -SIZE);
 		}
 
-		// if the player moved, then we have to move all the enemies as well!
+		// Moving all enemies
 		if(playerMoved) {
 			for(int i = 0; i < monstersOnScene.size; i++) {
 				MoveAIMonster(monstersOnScene.get(i));
@@ -214,6 +212,13 @@ public class broughGDX extends ApplicationAdapter {
 				m_spawnRate -= 1;
 			}
 		}
+	}
+
+	@Override
+	public void render () {
+
+		// the "engine" doesn't have a Update() method - so we just do our own and call it first thing on the render() message
+		Update();
 
 		// actually drawing
 		ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
@@ -275,7 +280,14 @@ public class broughGDX extends ApplicationAdapter {
 			);
 		}
 
-		// some debug
+		// rendering UI
+		// todo: MAGIC NUMBERS!!
+		int videoWidth = Gdx.graphics.getWidth();
+		int videoHeight = Gdx.graphics.getHeight();
+		String score = "SCORE:" + String.valueOf(m_playerScore);
+		kenneyMiniSquareMono.draw(batch, score, 2 * (videoWidth / 3) + 35, videoHeight - 50);
+
+		// Rendering Debug
 		RenderDebug();
 
 		batch.end();
@@ -285,6 +297,9 @@ public class broughGDX extends ApplicationAdapter {
 	public void dispose () {
 		batch.dispose();
 		allHeroes.dispose();
+
+		debugFont.dispose();
+		kenneyMiniSquareMono.dispose();
 	}
 
 	// -----------------------------------------------------------------------------------------------
@@ -306,7 +321,7 @@ public class broughGDX extends ApplicationAdapter {
 
 		switch(monster.Type()) {
 			case EATER: // todo: should eat walls to recover HP!
-			case SNAKE: // #todo: should move twice!!
+			case SNAKE: // todo: should move twice!!
 			case TANK:
 			case BIRD:
 				BroughTile moveTo = GetOneCloserToPlayer(monster);
@@ -378,9 +393,11 @@ public class broughGDX extends ApplicationAdapter {
 		TryMove(themMonster, 0, 0);
 	}
 
-	// todo: I don't really like this, the best way is to have a "template" mosnter for each monster
+	// todo: I don't really like this, the best way is to have a "template" monster for each monster
 	// todo: and then I can have a "monster bag" and just return a copy from a random one in the bag
 	// todo: This will work for now though.
+
+	// todo: can't this be moved to "BroughMonster"? - Not Sure, because it needs the sprites...
 	public BroughMonster CreateRandomMonster(Vector2 position) {
 		int randomMonster = MathUtils.random(MonsterTotal);
 

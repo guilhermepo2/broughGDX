@@ -2,6 +2,7 @@ package com.broughgdx;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -50,6 +51,14 @@ public class broughGDX extends ApplicationAdapter {
 
 	BitmapFont debugFont;
 	BitmapFont kenneyMiniSquareMono;
+
+	// ------------------------------------------
+	// Sounds
+	Sound playerAttack;
+	Sound monsterAttack;
+	Sound gotTreasure;
+	Sound moveSound;
+	Sound newMonster;
 	
 	@Override
 	public void create () {
@@ -82,6 +91,13 @@ public class broughGDX extends ApplicationAdapter {
 		debugFont = new BitmapFont(Gdx.files.internal("aria-8l.fnt"), false);
 		kenneyMiniSquareMono = new BitmapFont(Gdx.files.internal("kenney_mini_square_mono-24.fnt"), false);
 
+		// loading sounds
+		playerAttack = Gdx.audio.newSound(Gdx.files.internal("sounds/hurt1.wav"));
+		monsterAttack = Gdx.audio.newSound(Gdx.files.internal("sounds/hurt2.wav"));
+		gotTreasure = Gdx.audio.newSound(Gdx.files.internal("sounds/treasure.wav"));
+		moveSound = Gdx.audio.newSound(Gdx.files.internal("sounds/move.wav"));
+		newMonster = Gdx.audio.newSound(Gdx.files.internal("sounds/portal1.wav"));
+
 		Vector2 mainHeroPosition = new Vector2();
 		BroughTile startingTile = theDungeon.RandomPassableTile();
 		mainHeroPosition.x = startingTile.x * SIZE;
@@ -105,7 +121,10 @@ public class broughGDX extends ApplicationAdapter {
 			defending.DealDamage(1); // ... that's it?
 
 			if(attacker.IsPlayer()) {
+				playerAttack.play(1.0f);
 				defending.Stun(true);
+			} else {
+				monsterAttack.play(1.0f);
 			}
 
 			if(defending.HP() <= 0) {
@@ -156,9 +175,13 @@ public class broughGDX extends ApplicationAdapter {
 			oldTile.monster = null;
 			desiredTile.monster = actor;
 
+			if(actor.IsPlayer()) {
+				moveSound.play(1.0f);
+			}
+
 			// checking for treasures
 			if(actor.IsPlayer() && desiredTile.hasTreasure) {
-				// todo: play SFX
+				gotTreasure.play(1.0f);
 				desiredTile.hasTreasure = false;
 				m_playerScore += 1;
 				Gdx.app.log("debug", "player score: " + m_playerScore);
@@ -309,6 +332,13 @@ public class broughGDX extends ApplicationAdapter {
 
 		debugFont.dispose();
 		kenneyMiniSquareMono.dispose();
+
+		// sounds
+		playerAttack.dispose();
+		monsterAttack.dispose();
+		gotTreasure.dispose();
+		moveSound.dispose();
+		newMonster.dispose();
 	}
 
 	// -----------------------------------------------------------------------------------------------
@@ -396,6 +426,7 @@ public class broughGDX extends ApplicationAdapter {
 	// Monster Factories
 	// -----------------------------------------------------------------------------------------------
 	public void SpawnRandomMonsterAtRandomPosition() {
+		newMonster.play(1.0f);
 		BroughTile monsterTile = theDungeon.RandomPassableTile();
 		BroughMonster themMonster = CreateRandomMonster(new Vector2(monsterTile.x * SIZE, monsterTile.y * SIZE));
 		monstersOnScene.add(themMonster);

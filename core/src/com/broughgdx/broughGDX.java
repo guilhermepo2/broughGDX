@@ -147,6 +147,7 @@ public class broughGDX extends ApplicationAdapter {
 				didMove = true;
 			} else {
 				ResolveCombat(actor, desiredTile.monster);
+				actor.Attack(dx, dy);
 				didCombat = true;
 			}
 		}

@@ -76,6 +76,11 @@ public class BroughMonster {
         m_offset.y -= dy;
     }
 
+    public void Attack(int dx, int dy) {
+        m_offset.x = dx;
+        m_offset.y = dy;
+    }
+
     public void TickOffset(float amount) {
         if(m_offset.x == 0.0f && m_offset.y == 0.0f) {
             return;

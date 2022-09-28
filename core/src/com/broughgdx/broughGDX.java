@@ -187,6 +187,14 @@ public class broughGDX extends ApplicationAdapter {
 	}
 
 	private void Update() {
+		// Updating Offsets
+		float TickSpeed = 15.0f;
+		theHero.TickOffset(TickSpeed * SIZE * Gdx.graphics.getDeltaTime());
+
+		for(int i = 0; i < monstersOnScene.size; i++) {
+			monstersOnScene.get(i).TickOffset(TickSpeed * SIZE * Gdx.graphics.getDeltaTime());
+		}
+
 		// Moving the Player
 		boolean playerMoved = false;
 		if(myInputProcessor.Left()) {
@@ -251,24 +259,24 @@ public class broughGDX extends ApplicationAdapter {
 		for(int i = 0; i < monstersOnScene.size; i++) {
 			BroughMonster monster = monstersOnScene.get(i);
 			if(monster.TeleportCount() <= 0) {
-				batch.draw(monster.Texture(), monster.Position().x, monster.Position().y, 32, 32);
+				batch.draw(monster.Texture(), monster.RenderPosition().x, monster.RenderPosition().y, 32, 32);
 
 				int monsterHP = monster.HP();
 				for(int j = 0; j < monsterHP; j++) {
 					batch.draw(uiHeart,
-							uiHeartHorizontalOffset_start + monster.Position().x + (j%3 * uiHeartHorizontalOffset),
-							uiHeartVerticalOffset_start + monster.Position().y - ((j / 3) * uiHeartVerticalOffset),
+							uiHeartHorizontalOffset_start + monster.RenderPosition().x + (j%3 * uiHeartHorizontalOffset),
+							uiHeartVerticalOffset_start + monster.RenderPosition().y - ((j / 3) * uiHeartVerticalOffset),
 							uiHeartSize,
 							uiHeartSize
 					);
 				}
 			} else {
-				batch.draw(monsterSpawnPortal, monster.Position().x, monster.Position().y, 32, 32);
+				batch.draw(monsterSpawnPortal, monster.RenderPosition().x, monster.RenderPosition().y, 32, 32);
 			}
 		}
 
 		// rendering the hero
-		Vector2 mainHeroPosition = theHero.Position();
+		Vector2 mainHeroPosition = theHero.RenderPosition();
 		batch.draw(mainHero, mainHeroPosition.x, mainHeroPosition.y, 32, 32);
 		int mainHeroHP = theHero.HP();
 		for(int i = 0; i < mainHeroHP; i++) {

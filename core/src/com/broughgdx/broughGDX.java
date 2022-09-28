@@ -17,9 +17,8 @@ import com.badlogic.gdx.utils.ScreenUtils;
 public class broughGDX extends ApplicationAdapter {
 	static int SIZE = 32;
 	SpriteBatch batch;
-	Texture allHeroes;
-	Texture environmentTexture;
-	Texture objectTexture;
+	// definitive texture
+	Texture textureFile;
 
 
 	TextureRegion mainHero;
@@ -66,22 +65,20 @@ public class broughGDX extends ApplicationAdapter {
 		Gdx.input.setInputProcessor(myInputProcessor);
 
 		batch = new SpriteBatch();
-		allHeroes = new Texture("lofi_char.png");
-		environmentTexture = new Texture("lofi_environment.png");
-		objectTexture = new Texture("lofi_obj.png");
+		textureFile = new Texture("brough.png");
 
-		mainHero = new TextureRegion(allHeroes, 0, 0, 8, 8);
-		floor = new TextureRegion(environmentTexture, 32, 0, 8, 8);
-		wall = new TextureRegion(environmentTexture, 112, 96, 8, 8);
-		uiHeart = new TextureRegion(objectTexture, 120, 56, 8, 8);
-		monsterSpawnPortal = new TextureRegion(objectTexture, 112, 32, 8, 8);
-		pickupTexture = new TextureRegion(objectTexture, 56, 0, 8, 8);
+		mainHero = new TextureRegion(textureFile, 0, 0, 8, 8);
+		floor = new TextureRegion(textureFile, 0, 16, 8, 8);
+		wall = new TextureRegion(textureFile, 8, 16, 8, 8);
+		uiHeart = new TextureRegion(textureFile, 0, 24, 8, 8);
+		monsterSpawnPortal = new TextureRegion(textureFile, 8, 24, 8, 8);
+		pickupTexture = new TextureRegion(textureFile, 16, 24, 8, 8);
 
-		monsterBird = new TextureRegion(allHeroes, 32, 104, 8, 8);
-		monsterSnake = new TextureRegion(allHeroes, 32, 96, 8, 8);
-		monsterBlob = new TextureRegion(allHeroes, 16, 88, 8, 8);
-		monsterEater = new TextureRegion(allHeroes, 80, 96, 8, 8);
-		monsterJester = new TextureRegion(allHeroes, 120, 88, 8, 8);
+		monsterBird = new TextureRegion(textureFile, 0, 8, 8, 8);
+		monsterSnake = new TextureRegion(textureFile, 8, 8, 8, 8);
+		monsterBlob = new TextureRegion(textureFile, 16, 8, 8, 8);
+		monsterEater = new TextureRegion(textureFile, 24, 8, 8, 8);
+		monsterJester = new TextureRegion(textureFile, 32, 8, 8, 8);
 
 		theDungeon = new BroughDungeon();
 		theDungeon.GenerateLevel();
@@ -328,7 +325,7 @@ public class broughGDX extends ApplicationAdapter {
 	@Override
 	public void dispose () {
 		batch.dispose();
-		allHeroes.dispose();
+		textureFile.dispose();
 
 		debugFont.dispose();
 		kenneyMiniSquareMono.dispose();

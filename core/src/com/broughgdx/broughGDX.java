@@ -58,6 +58,12 @@ public class broughGDX extends ApplicationAdapter {
 	Sound gotTreasure;
 	Sound moveSound;
 	Sound newMonster;
+
+	// ------------------------------------------
+	// Screenshake
+	int shakeAmount = 0;
+	int shakeX = 0;
+	int shakeY = 0;
 	
 	@Override
 	public void create () {
@@ -115,6 +121,7 @@ public class broughGDX extends ApplicationAdapter {
 		// players can't attack players ( if we ever have more than 1)
 		// monsters can't attack monsters, duh.
 		if(attacker.IsPlayer() != defending.IsPlayer()) {
+			shakeAmount = SIZE / 4;
 			defending.DealDamage(1); // ... that's it?
 
 			if(attacker.IsPlayer()) {
@@ -248,6 +255,7 @@ public class broughGDX extends ApplicationAdapter {
 
 		// the "engine" doesn't have a Update() method - so we just do our own and call it first thing on the render() message
 		Update();
+		ShakeScreen();
 
 		// actually drawing
 		ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
@@ -280,7 +288,7 @@ public class broughGDX extends ApplicationAdapter {
 		for(int i = 0; i < monstersOnScene.size; i++) {
 			BroughMonster monster = monstersOnScene.get(i);
 			if(monster.TeleportCount() <= 0) {
-				batch.draw(monster.Texture(), monster.RenderPosition().x, monster.RenderPosition().y, 32, 32);
+				batch.draw(monster.Texture(), monster.RenderPosition().x + shakeX, monster.RenderPosition().y + shakeY, 32, 32);
 
 				int monsterHP = monster.HP();
 				for(int j = 0; j < monsterHP; j++) {
@@ -298,7 +306,7 @@ public class broughGDX extends ApplicationAdapter {
 
 		// rendering the hero
 		Vector2 mainHeroPosition = theHero.RenderPosition();
-		batch.draw(mainHero, mainHeroPosition.x, mainHeroPosition.y, 32, 32);
+		batch.draw(mainHero, mainHeroPosition.x + shakeX, mainHeroPosition.y + shakeY, 32, 32);
 		int mainHeroHP = theHero.HP();
 		for(int i = 0; i < mainHeroHP; i++) {
 			batch.draw(uiHeart,
@@ -477,5 +485,20 @@ public class broughGDX extends ApplicationAdapter {
 	public BroughMonster CreateEater(Vector2 position) {
 		BroughMonster newEater = new BroughMonster(monsterEater, position, 1, BroughMonster.MonsterType.EATER);
 		return newEater;
+	}
+
+	// -----------------------------------------------------------------------------------------------
+	// Utilities
+	// -----------------------------------------------------------------------------------------------
+	private void ShakeScreen() {
+		if(shakeAmount > 0) {
+			shakeAmount--;
+		}
+
+		float shakeAngle = (float)(MathUtils.random() * Math.PI * 2);
+		shakeX = Math.round((float)(Math.cos(shakeAngle)) * shakeAmount);
+		shakeY = Math.round((float)(Math.sin(shakeAngle)) * shakeAmount);
+
+
 	}
 }

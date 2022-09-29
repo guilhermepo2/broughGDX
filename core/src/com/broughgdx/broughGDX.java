@@ -37,6 +37,8 @@ public class broughGDX extends ApplicationAdapter {
 	TextureRegion monsterSpawnPortal;
 	TextureRegion pickupTexture;
 
+	TextureRegion exitPortal;
+
 	BroughInputProcessor myInputProcessor;
 	BroughDungeon theDungeon;
 	BroughMonster theHero;
@@ -45,6 +47,7 @@ public class broughGDX extends ApplicationAdapter {
 
 	// ----------------------------------------
 	// Spawning Monsters as the game goes on
+	private int m_currentLevel = 0;
 	private int m_spawnRate = 15;
 	private int m_spawnCounter = m_spawnRate;
 
@@ -58,15 +61,15 @@ public class broughGDX extends ApplicationAdapter {
 	Sound gotTreasure;
 	Sound moveSound;
 	Sound newMonster;
+	Sound levelUpPortal;
 
 	// ------------------------------------------
 	// Screenshake
 	int shakeAmount = 0;
 	int shakeX = 0;
 	int shakeY = 0;
-	
-	@Override
-	public void create () {
+
+	private void SetupResources() {
 		myInputProcessor = new BroughInputProcessor();
 		Gdx.input.setInputProcessor(myInputProcessor);
 
@@ -86,8 +89,9 @@ public class broughGDX extends ApplicationAdapter {
 		monsterEater = new TextureRegion(textureFile, 24, 8, 8, 8);
 		monsterJester = new TextureRegion(textureFile, 32, 8, 8, 8);
 
+		exitPortal = new TextureRegion(textureFile, 24, 24, 8, 8);
+
 		theDungeon = new BroughDungeon();
-		theDungeon.GenerateLevel();
 
 		monstersOnScene = new Array<BroughMonster>();
 
@@ -100,20 +104,42 @@ public class broughGDX extends ApplicationAdapter {
 		gotTreasure = Gdx.audio.newSound(Gdx.files.internal("sounds/treasure.wav"));
 		moveSound = Gdx.audio.newSound(Gdx.files.internal("sounds/move.wav"));
 		newMonster = Gdx.audio.newSound(Gdx.files.internal("sounds/portal1.wav"));
+		levelUpPortal = Gdx.audio.newSound(Gdx.files.internal("sounds/portal2.wav"));
+	}
 
+	private void SetupPlayer() {
 		Vector2 mainHeroPosition = new Vector2();
 		BroughTile startingTile = theDungeon.RandomPassableTile();
 		mainHeroPosition.x = startingTile.x * SIZE;
 		mainHeroPosition.y = startingTile.y * SIZE;
-
 		theHero = new BroughMonster(mainHero, mainHeroPosition, 3, true);
 		TryMove(theHero, 0, 0);
 
-		SpawnRandomMonsterAtRandomPosition();
+		int playerHP = Math.min(3 + m_currentLevel, 6);
+		theHero.SetMaxHP(playerHP);
+	}
 
+	private void InitializeLevel() {
+		theDungeon.GenerateLevel();
+		SetupPlayer();
+
+		SpawnRandomMonsterAtRandomPosition();
 		for(int i = 0; i < 2; i++) {
 			theDungeon.RandomPassableTile().hasTreasure = true;
 		}
+		theDungeon.RandomPassableTile().isExit = true;
+
+		m_spawnRate = 15 - m_currentLevel;
+	}
+
+	private void CleanLevel() {
+		monstersOnScene.clear();
+	}
+
+	@Override
+	public void create () {
+		SetupResources();
+		InitializeLevel();
 	}
 
 	private boolean ResolveCombat(BroughMonster attacker, BroughMonster defending) {
@@ -189,6 +215,22 @@ public class broughGDX extends ApplicationAdapter {
 				desiredTile.hasTreasure = false;
 				m_playerScore += 1;
 				Gdx.app.log("debug", "player score: " + m_playerScore);
+			}
+
+			// checking for exit
+			// either "restart" the game
+			// or just end it if the current level is 6
+			if(actor.IsPlayer() && desiredTile.isExit) {
+				levelUpPortal.play(1.0f);
+				m_currentLevel++;
+
+				if(m_currentLevel >= 6) {
+					// we won!
+					Gdx.app.log("debug", "player won!");
+				}
+
+				CleanLevel();
+				InitializeLevel();
 			}
 		}
 
@@ -271,6 +313,10 @@ public class broughGDX extends ApplicationAdapter {
 
 					if(tile.hasTreasure) {
 						batch.draw(pickupTexture, (tile.x * SIZE) + 4, (tile.y * SIZE) + 4, 24, 24);
+					}
+
+					if(tile.isExit) {
+						batch.draw(exitPortal, (tile.x * SIZE), (tile.y * SIZE), 32, 32);
 					}
 				} else {
 					batch.draw(wall, tile.x * SIZE, tile.y * SIZE, 32, 32);

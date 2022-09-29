@@ -104,4 +104,8 @@ public class BroughMonster {
         m_hp -= amount;
     }
     public void TickTeleportCount() { m_teleportCount -= 1; }
+
+    public void SetMaxHP(int amount) {
+        m_hp = amount;
+    }
 }

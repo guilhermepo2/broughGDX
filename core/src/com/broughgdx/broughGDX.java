@@ -15,6 +15,14 @@ import com.badlogic.gdx.utils.ScreenUtils;
 
 
 public class broughGDX extends ApplicationAdapter {
+	// Game State
+	public enum EGameState {
+		LOADING, TITLE, RUNNING, DEAD, WON
+	}
+	private EGameState m_currentGameState;
+	private float m_timeDead;
+	private float TIME_TO_RESET = 5.0f;
+
 	static int SIZE = 32;
 	SpriteBatch batch;
 	// definitive texture
@@ -128,18 +136,38 @@ public class broughGDX extends ApplicationAdapter {
 			theDungeon.RandomPassableTile().hasTreasure = true;
 		}
 		theDungeon.RandomPassableTile().isExit = true;
-
-		m_spawnRate = 15 - m_currentLevel;
 	}
 
 	private void CleanLevel() {
 		monstersOnScene.clear();
 	}
 
+	public void ReinitGame() {
+		m_currentLevel = 0;
+		m_playerScore = 0;
+		m_spawnRate = 15 - m_currentLevel;
+		m_spawnCounter = m_spawnRate;
+
+		CleanLevel();
+		InitializeLevel();
+	}
+
+	public void IncrementLevels() {
+		m_currentLevel++;
+		CleanLevel();
+		InitializeLevel();
+		m_spawnRate = 15 - m_currentLevel;
+		m_spawnCounter = m_spawnRate;
+	}
+
 	@Override
 	public void create () {
+		m_currentGameState = EGameState.LOADING;
+
 		SetupResources();
-		InitializeLevel();
+		ReinitGame();
+
+		m_currentGameState = EGameState.TITLE;
 	}
 
 	private boolean ResolveCombat(BroughMonster attacker, BroughMonster defending) {
@@ -166,7 +194,8 @@ public class broughGDX extends ApplicationAdapter {
 					defendingTile.monster = null;
 					monstersOnScene.removeValue(defending, true);
 				} else {
-					// todo: game over
+					m_currentGameState = EGameState.DEAD;
+					m_timeDead = 0.0f;
 				}
 
 			}
@@ -222,15 +251,13 @@ public class broughGDX extends ApplicationAdapter {
 			// or just end it if the current level is 6
 			if(actor.IsPlayer() && desiredTile.isExit) {
 				levelUpPortal.play(1.0f);
-				m_currentLevel++;
 
 				if(m_currentLevel >= 6) {
-					// we won!
+					m_currentGameState = EGameState.WON;
 					Gdx.app.log("debug", "player won!");
 				}
 
-				CleanLevel();
-				InitializeLevel();
+				IncrementLevels();
 			}
 		}
 
@@ -294,6 +321,54 @@ public class broughGDX extends ApplicationAdapter {
 
 	@Override
 	public void render () {
+		int videoWidth = Gdx.graphics.getWidth();
+		int videoHeight = Gdx.graphics.getHeight();
+
+		if(m_currentGameState == EGameState.TITLE) {
+			ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
+			batch.begin();
+			kenneyMiniSquareMono.draw(batch, "brough GDX", (videoWidth / 2) - 80, videoHeight / 2);
+			kenneyMiniSquareMono.draw(batch, "click anywhere to start!", (videoWidth / 2) - 190, (videoHeight / 2) - 30);
+
+			kenneyMiniSquareMono.draw(batch, "developed by gueepo", (videoWidth / 2) - 150, 25);
+			batch.end();
+
+			if(Gdx.input.isTouched()) {
+				m_currentGameState = EGameState.RUNNING;
+			}
+
+			return;
+		} else if (m_currentGameState == EGameState.DEAD) {
+			ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
+			batch.begin();
+			kenneyMiniSquareMono.draw(batch, "YOU DIED", (videoWidth / 2) - 80, videoHeight / 2);
+			kenneyMiniSquareMono.draw(batch, ":(", (videoWidth / 2) - 10, (videoHeight / 2) + 25);
+			batch.end();
+
+			m_timeDead += Gdx.graphics.getDeltaTime();
+
+			if(m_timeDead > TIME_TO_RESET) {
+				ReinitGame();
+				m_currentGameState = EGameState.TITLE;
+			}
+
+			return;
+		} else if (m_currentGameState == EGameState.WON) {
+			ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
+			batch.begin();
+			kenneyMiniSquareMono.draw(batch, "YOU WON!", (videoWidth / 2) - 80, videoHeight / 2);
+			kenneyMiniSquareMono.draw(batch, ":)", (videoWidth / 2) - 10, (videoHeight / 2) + 25);
+			batch.end();
+
+			m_timeDead += Gdx.graphics.getDeltaTime();
+
+			if(m_timeDead > TIME_TO_RESET) {
+				ReinitGame();
+				m_currentGameState = EGameState.TITLE;
+			}
+
+			return;
+		}
 
 		// the "engine" doesn't have a Update() method - so we just do our own and call it first thing on the render() message
 		Update();
@@ -365,8 +440,6 @@ public class broughGDX extends ApplicationAdapter {
 
 		// rendering UI
 		// todo: MAGIC NUMBERS!!
-		int videoWidth = Gdx.graphics.getWidth();
-		int videoHeight = Gdx.graphics.getHeight();
 		String score = "SCORE:" + String.valueOf(m_playerScore);
 		kenneyMiniSquareMono.draw(batch, score, 2 * (videoWidth / 3) + 35, videoHeight - 50);
 

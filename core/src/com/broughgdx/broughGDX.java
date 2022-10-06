@@ -56,6 +56,21 @@ public class broughGDX extends ApplicationAdapter {
 	Sound newMonster;
 	Sound levelUpPortal;
 
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
+	// Setup Stuff !
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
+	@Override
+	public void create () {
+		m_gameStuff = new BroughGame(); // very important!! can't forget!!
+
+		m_gameStuff.SetCurrentState(BroughGame.EGameState.LOADING);
+		SetupResources();
+		ReinitGame();
+		m_gameStuff.SetCurrentState(BroughGame.EGameState.TITLE);
+	}
+
 	private void SetupResources() {
 		m_videoWidth = Gdx.graphics.getWidth();
 		m_videoHeight = Gdx.graphics.getHeight();
@@ -97,16 +112,16 @@ public class broughGDX extends ApplicationAdapter {
 		levelUpPortal = Gdx.audio.newSound(Gdx.files.internal("sounds/portal2.wav"));
 	}
 
-	private void SetupPlayer() {
-		Vector2 mainHeroPosition = new Vector2();
-		BroughTile startingTile = theDungeon.RandomPassableTile();
-		mainHeroPosition.x = startingTile.x * SIZE;
-		mainHeroPosition.y = startingTile.y * SIZE;
-		theHero = new BroughMonster(mainHero, mainHeroPosition, 3, true);
-		TryMove(theHero, 0, 0);
+	public void ReinitGame() {
+		m_gameStuff.ResetMonsterSpawning();
+		m_gameStuff.ResetPlayerScore();
 
-		int playerHP = Math.min(3 + m_gameStuff.GetCurrentLevel(), 6);
-		theHero.SetMaxHP(playerHP);
+		CleanLevel();
+		InitializeLevel();
+	}
+
+	private void CleanLevel() {
+		monstersOnScene.clear();
 	}
 
 	private void InitializeLevel() {
@@ -120,16 +135,16 @@ public class broughGDX extends ApplicationAdapter {
 		theDungeon.RandomPassableTile().isExit = true;
 	}
 
-	private void CleanLevel() {
-		monstersOnScene.clear();
-	}
+	private void SetupPlayer() {
+		Vector2 mainHeroPosition = new Vector2();
+		BroughTile startingTile = theDungeon.RandomPassableTile();
+		mainHeroPosition.x = startingTile.x * SIZE;
+		mainHeroPosition.y = startingTile.y * SIZE;
+		theHero = new BroughMonster(mainHero, mainHeroPosition, 3, true);
+		TryMove(theHero, 0, 0);
 
-	public void ReinitGame() {
-		m_gameStuff.ResetMonsterSpawning();
-		m_gameStuff.ResetPlayerScore();
-
-		CleanLevel();
-		InitializeLevel();
+		int playerHP = Math.min(3 + m_gameStuff.GetCurrentLevel(), 6);
+		theHero.SetMaxHP(playerHP);
 	}
 
 	public void IncrementLevels() {
@@ -138,52 +153,52 @@ public class broughGDX extends ApplicationAdapter {
 		InitializeLevel();
 	}
 
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
+	// Update Stuff !
+	// This is a bit weird because usually we would have a "Update(deltaTime)" message
+	// but libGDX doesn't do that, just know that this is the first thing called on the render() function
+	// as long as we are in the RUNNING state
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
+	private void Update() {
+		// Updating Offsets
+		float TickSpeed = 15.0f;
+		theHero.TickOffset(TickSpeed * SIZE * Gdx.graphics.getDeltaTime());
 
-	@Override
-	public void create () {
-		m_gameStuff = new BroughGame(); // very important!! can't forget!!
-
-		m_gameStuff.SetCurrentState(BroughGame.EGameState.LOADING);
-		SetupResources();
-		ReinitGame();
-		m_gameStuff.SetCurrentState(BroughGame.EGameState.TITLE);
-	}
-
-	private boolean ResolveCombat(BroughMonster attacker, BroughMonster defending) {
-
-		// players can't attack players ( if we ever have more than 1)
-		// monsters can't attack monsters, duh.
-		if(attacker.IsPlayer() != defending.IsPlayer()) {
-			m_gameStuff.SetShakeAmount(SIZE / 4);
-			defending.DealDamage(1); // ... that's it?
-
-			if(attacker.IsPlayer()) {
-				playerAttack.play(1.0f);
-				defending.Stun(true);
-			} else {
-				monsterAttack.play(1.0f);
-			}
-
-			if(defending.HP() <= 0) {
-				if(!defending.IsPlayer()) {
-					Vector2 defendingTilePosition = defending.Position();
-					int tileX = (int)(defendingTilePosition.x / SIZE);
-					int tileY = (int)(defendingTilePosition.y / SIZE);
-					BroughTile defendingTile = theDungeon.GetTile(tileX, tileY);
-					defendingTile.monster = null;
-					monstersOnScene.removeValue(defending, true);
-				} else {
-					m_gameStuff.SetCurrentState(BroughGame.EGameState.DEAD);
-					m_gameStuff.StartTimer();
-				}
-
-			}
-
-			return true;
+		for(int i = 0; i < monstersOnScene.size; i++) {
+			monstersOnScene.get(i).TickOffset(TickSpeed * SIZE * Gdx.graphics.getDeltaTime());
 		}
 
-		return false;
+		// Moving the Player
+		boolean playerMoved = false;
+		if(myInputProcessor.Left()) {
+			playerMoved = TryMove(theHero, -SIZE, 0);
+		} else if(myInputProcessor.Right()) {
+			playerMoved = TryMove(theHero, SIZE, 0);
+		} else if(myInputProcessor.Up()) {
+			playerMoved = TryMove(theHero, 0, SIZE);
+		} else if(myInputProcessor.Down()) {
+			playerMoved = TryMove(theHero, 0, -SIZE);
+		}
+
+		// Moving all enemies
+		if(playerMoved) {
+			for(int i = 0; i < monstersOnScene.size; i++) {
+				MoveAIMonster(monstersOnScene.get(i));
+			}
+
+			if(m_gameStuff.DecrementSpawnCounter(1)) {
+				SpawnRandomMonsterAtRandomPosition();
+			}
+		}
 	}
+
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
+	// Gameplay Stuff !
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
 
 	private boolean TryMove(BroughMonster actor, int dx, int dy) {
 		Vector2 desiredPosition = actor.Position();
@@ -193,7 +208,6 @@ public class broughGDX extends ApplicationAdapter {
 
 		int actualX = (int)( (desiredPosition.x + dx) / SIZE);
 		int actualY = (int)( (desiredPosition.y + dy) / SIZE);
-
 		BroughTile desiredTile = theDungeon.GetTile(actualX, actualY);
 
 		boolean didMove = false;
@@ -242,55 +256,40 @@ public class broughGDX extends ApplicationAdapter {
 		return didMove || didCombat;
 	}
 
-	private void RenderDebug() {
-		debugFont.setColor(Color.RED);
-		Array<BroughTile> allTiles = theDungeon.GetTiles();
+	private boolean ResolveCombat(BroughMonster attacker, BroughMonster defending) {
 
-		for(int i = 0; i < allTiles.size; i++) {
-			if(allTiles.get(i).monster != null) {
-				debugFont.draw(batch, "m", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
-			}
+		// players can't attack players ( if we ever have more than 1)
+		// monsters can't attack monsters, duh.
+		if(attacker.IsPlayer() != defending.IsPlayer()) {
+			m_gameStuff.SetShakeAmount(SIZE / 4);
+			defending.DealDamage(1); // ... that's it?
 
-			// drawing passable/unpassable tiles
-			if(allTiles.get(i).passable) {
-				debugFont.draw(batch, "0", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+			if(attacker.IsPlayer()) {
+				playerAttack.play(1.0f);
+				defending.Stun(true);
 			} else {
-				debugFont.draw(batch, "1", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
-			}
-		}
-	}
-
-	private void Update() {
-		// Updating Offsets
-		float TickSpeed = 15.0f;
-		theHero.TickOffset(TickSpeed * SIZE * Gdx.graphics.getDeltaTime());
-
-		for(int i = 0; i < monstersOnScene.size; i++) {
-			monstersOnScene.get(i).TickOffset(TickSpeed * SIZE * Gdx.graphics.getDeltaTime());
-		}
-
-		// Moving the Player
-		boolean playerMoved = false;
-		if(myInputProcessor.Left()) {
-			playerMoved = TryMove(theHero, -SIZE, 0);
-		} else if(myInputProcessor.Right()) {
-			playerMoved = TryMove(theHero, SIZE, 0);
-		} else if(myInputProcessor.Up()) {
-			playerMoved = TryMove(theHero, 0, SIZE);
-		} else if(myInputProcessor.Down()) {
-			playerMoved = TryMove(theHero, 0, -SIZE);
-		}
-
-		// Moving all enemies
-		if(playerMoved) {
-			for(int i = 0; i < monstersOnScene.size; i++) {
-				MoveAIMonster(monstersOnScene.get(i));
+				monsterAttack.play(1.0f);
 			}
 
-			if(m_gameStuff.DecrementSpawnCounter(1)) {
-				SpawnRandomMonsterAtRandomPosition();
+			if(defending.HP() <= 0) {
+				if(!defending.IsPlayer()) {
+					Vector2 defendingTilePosition = defending.Position();
+					int tileX = (int)(defendingTilePosition.x / SIZE);
+					int tileY = (int)(defendingTilePosition.y / SIZE);
+					BroughTile defendingTile = theDungeon.GetTile(tileX, tileY);
+					defendingTile.monster = null;
+					monstersOnScene.removeValue(defending, true);
+				} else {
+					m_gameStuff.SetCurrentState(BroughGame.EGameState.DEAD);
+					m_gameStuff.StartTimer();
+				}
+
 			}
+
+			return true;
 		}
+
+		return false;
 	}
 
 	// -----------------------------------------------------------------------------------------------
@@ -434,6 +433,24 @@ public class broughGDX extends ApplicationAdapter {
 		}
 	}
 
+	private void RenderDebug() {
+		debugFont.setColor(Color.RED);
+		Array<BroughTile> allTiles = theDungeon.GetTiles();
+
+		for(int i = 0; i < allTiles.size; i++) {
+			if(allTiles.get(i).monster != null) {
+				debugFont.draw(batch, "m", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+			}
+
+			// drawing passable/unpassable tiles
+			if(allTiles.get(i).passable) {
+				debugFont.draw(batch, "0", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+			} else {
+				debugFont.draw(batch, "1", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+			}
+		}
+	}
+
 	// -----------------------------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------------------------
 	// Cleaning everything up
@@ -443,11 +460,8 @@ public class broughGDX extends ApplicationAdapter {
 	public void dispose () {
 		batch.dispose();
 		textureFile.dispose();
-
 		debugFont.dispose();
 		kenneyMiniSquareMono.dispose();
-
-		// sounds
 		playerAttack.dispose();
 		monsterAttack.dispose();
 		gotTreasure.dispose();

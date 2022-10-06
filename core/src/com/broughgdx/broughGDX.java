@@ -15,23 +15,17 @@ import com.badlogic.gdx.utils.ScreenUtils;
 
 
 public class broughGDX extends ApplicationAdapter {
-	// Game State
-	public enum EGameState {
-		LOADING, TITLE, RUNNING, DEAD, WON
-	}
-	private EGameState m_currentGameState;
-	private float m_timeDead;
-	private float TIME_TO_RESET = 5.0f;
+	private BroughGame m_gameStuff;
+
+	int m_videoWidth;
+	int m_videoHeight;
 
 	static int SIZE = 32;
 	SpriteBatch batch;
-	// definitive texture
 	Texture textureFile;
-
-
 	TextureRegion mainHero;
 
-	// monsters
+	// Monsters
 	private int MonsterTotal = 5;
 	TextureRegion monsterBird;
 	TextureRegion monsterSnake;
@@ -41,29 +35,20 @@ public class broughGDX extends ApplicationAdapter {
 	TextureRegion wall;
 	TextureRegion floor;
 	TextureRegion uiHeart;
-
 	TextureRegion monsterSpawnPortal;
 	TextureRegion pickupTexture;
-
 	TextureRegion exitPortal;
-
 	BroughInputProcessor myInputProcessor;
 	BroughDungeon theDungeon;
 	BroughMonster theHero;
-	private int m_playerScore = 0;
 	Array<BroughMonster> monstersOnScene;
-
-	// ----------------------------------------
-	// Spawning Monsters as the game goes on
-	private int m_currentLevel = 0;
-	private int m_spawnRate = 15;
-	private int m_spawnCounter = m_spawnRate;
 
 	BitmapFont debugFont;
 	BitmapFont kenneyMiniSquareMono;
 
 	// ------------------------------------------
 	// Sounds
+	// ------------------------------------------
 	Sound playerAttack;
 	Sound monsterAttack;
 	Sound gotTreasure;
@@ -71,13 +56,10 @@ public class broughGDX extends ApplicationAdapter {
 	Sound newMonster;
 	Sound levelUpPortal;
 
-	// ------------------------------------------
-	// Screenshake
-	int shakeAmount = 0;
-	int shakeX = 0;
-	int shakeY = 0;
-
 	private void SetupResources() {
+		m_videoWidth = Gdx.graphics.getWidth();
+		m_videoHeight = Gdx.graphics.getHeight();
+
 		myInputProcessor = new BroughInputProcessor();
 		Gdx.input.setInputProcessor(myInputProcessor);
 
@@ -123,7 +105,7 @@ public class broughGDX extends ApplicationAdapter {
 		theHero = new BroughMonster(mainHero, mainHeroPosition, 3, true);
 		TryMove(theHero, 0, 0);
 
-		int playerHP = Math.min(3 + m_currentLevel, 6);
+		int playerHP = Math.min(3 + m_gameStuff.GetCurrentLevel(), 6);
 		theHero.SetMaxHP(playerHP);
 	}
 
@@ -143,31 +125,28 @@ public class broughGDX extends ApplicationAdapter {
 	}
 
 	public void ReinitGame() {
-		m_currentLevel = 0;
-		m_playerScore = 0;
-		m_spawnRate = 15 - m_currentLevel;
-		m_spawnCounter = m_spawnRate;
+		m_gameStuff.ResetMonsterSpawning();
+		m_gameStuff.ResetPlayerScore();
 
 		CleanLevel();
 		InitializeLevel();
 	}
 
 	public void IncrementLevels() {
-		m_currentLevel++;
+		m_gameStuff.IncrementLevel(1);
 		CleanLevel();
 		InitializeLevel();
-		m_spawnRate = 15 - m_currentLevel;
-		m_spawnCounter = m_spawnRate;
 	}
+
 
 	@Override
 	public void create () {
-		m_currentGameState = EGameState.LOADING;
+		m_gameStuff = new BroughGame(); // very important!! can't forget!!
 
+		m_gameStuff.SetCurrentState(BroughGame.EGameState.LOADING);
 		SetupResources();
 		ReinitGame();
-
-		m_currentGameState = EGameState.TITLE;
+		m_gameStuff.SetCurrentState(BroughGame.EGameState.TITLE);
 	}
 
 	private boolean ResolveCombat(BroughMonster attacker, BroughMonster defending) {
@@ -175,7 +154,7 @@ public class broughGDX extends ApplicationAdapter {
 		// players can't attack players ( if we ever have more than 1)
 		// monsters can't attack monsters, duh.
 		if(attacker.IsPlayer() != defending.IsPlayer()) {
-			shakeAmount = SIZE / 4;
+			m_gameStuff.SetShakeAmount(SIZE / 4);
 			defending.DealDamage(1); // ... that's it?
 
 			if(attacker.IsPlayer()) {
@@ -194,8 +173,8 @@ public class broughGDX extends ApplicationAdapter {
 					defendingTile.monster = null;
 					monstersOnScene.removeValue(defending, true);
 				} else {
-					m_currentGameState = EGameState.DEAD;
-					m_timeDead = 0.0f;
+					m_gameStuff.SetCurrentState(BroughGame.EGameState.DEAD);
+					m_gameStuff.StartTimer();
 				}
 
 			}
@@ -242,8 +221,8 @@ public class broughGDX extends ApplicationAdapter {
 			if(actor.IsPlayer() && desiredTile.hasTreasure) {
 				gotTreasure.play(1.0f);
 				desiredTile.hasTreasure = false;
-				m_playerScore += 1;
-				Gdx.app.log("debug", "player score: " + m_playerScore);
+				m_gameStuff.AddToPlayerScore(1);
+				Gdx.app.log("debug", "player score: " + m_gameStuff.GetPlayerScore());
 			}
 
 			// checking for exit
@@ -252,16 +231,14 @@ public class broughGDX extends ApplicationAdapter {
 			if(actor.IsPlayer() && desiredTile.isExit) {
 				levelUpPortal.play(1.0f);
 
-				if(m_currentLevel >= 6) {
-					m_currentGameState = EGameState.WON;
-					Gdx.app.log("debug", "player won!");
+				if(m_gameStuff.GetCurrentLevel() >= 6) {
+					m_gameStuff.SetCurrentState(BroughGame.EGameState.WON);
+				} else {
+					IncrementLevels();
 				}
-
-				IncrementLevels();
 			}
 		}
 
-		// Gdx.app.log("debug", "`new position`" + actor.Position());
 		return didMove || didCombat;
 	}
 
@@ -271,14 +248,14 @@ public class broughGDX extends ApplicationAdapter {
 
 		for(int i = 0; i < allTiles.size; i++) {
 			if(allTiles.get(i).monster != null) {
-				// debugFont.draw(batch, "m", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+				debugFont.draw(batch, "m", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
 			}
 
 			// drawing passable/unpassable tiles
 			if(allTiles.get(i).passable) {
-				// debugFont.draw(batch, "0", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+				debugFont.draw(batch, "0", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
 			} else {
-				// debugFont.draw(batch, "1", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
+				debugFont.draw(batch, "1", 8 + (allTiles.get(i).x * SIZE), SIZE + (allTiles.get(i).y * SIZE) );
 			}
 		}
 	}
@@ -310,69 +287,34 @@ public class broughGDX extends ApplicationAdapter {
 				MoveAIMonster(monstersOnScene.get(i));
 			}
 
-			m_spawnCounter -= 1;
-			if(m_spawnCounter < 0) {
+			if(m_gameStuff.DecrementSpawnCounter(1)) {
 				SpawnRandomMonsterAtRandomPosition();
-				m_spawnCounter = m_spawnRate;
-				m_spawnRate -= 1;
 			}
 		}
 	}
 
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
+	// Rendering Stuff !
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
 	@Override
 	public void render () {
-		int videoWidth = Gdx.graphics.getWidth();
-		int videoHeight = Gdx.graphics.getHeight();
 
-		if(m_currentGameState == EGameState.TITLE) {
-			ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
-			batch.begin();
-			kenneyMiniSquareMono.draw(batch, "brough GDX", (videoWidth / 2) - 80, videoHeight / 2);
-			kenneyMiniSquareMono.draw(batch, "click anywhere to start!", (videoWidth / 2) - 190, (videoHeight / 2) - 30);
-
-			kenneyMiniSquareMono.draw(batch, "developed by gueepo", (videoWidth / 2) - 150, 25);
-			batch.end();
-
-			if(Gdx.input.isTouched()) {
-				m_currentGameState = EGameState.RUNNING;
-			}
-
+		if(m_gameStuff.GetCurrentState() == BroughGame.EGameState.TITLE) {
+			RenderTitleScreen();
 			return;
-		} else if (m_currentGameState == EGameState.DEAD) {
-			ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
-			batch.begin();
-			kenneyMiniSquareMono.draw(batch, "YOU DIED", (videoWidth / 2) - 80, videoHeight / 2);
-			kenneyMiniSquareMono.draw(batch, ":(", (videoWidth / 2) - 10, (videoHeight / 2) + 25);
-			batch.end();
-
-			m_timeDead += Gdx.graphics.getDeltaTime();
-
-			if(m_timeDead > TIME_TO_RESET) {
-				ReinitGame();
-				m_currentGameState = EGameState.TITLE;
-			}
-
+		} else if (m_gameStuff.GetCurrentState() == BroughGame.EGameState.DEAD) {
+			RenderDeadScreen();
 			return;
-		} else if (m_currentGameState == EGameState.WON) {
-			ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
-			batch.begin();
-			kenneyMiniSquareMono.draw(batch, "YOU WON!", (videoWidth / 2) - 80, videoHeight / 2);
-			kenneyMiniSquareMono.draw(batch, ":)", (videoWidth / 2) - 10, (videoHeight / 2) + 25);
-			batch.end();
-
-			m_timeDead += Gdx.graphics.getDeltaTime();
-
-			if(m_timeDead > TIME_TO_RESET) {
-				ReinitGame();
-				m_currentGameState = EGameState.TITLE;
-			}
-
+		} else if (m_gameStuff.GetCurrentState() == BroughGame.EGameState.WON) {
+			RenderVictoryScreen();
 			return;
 		}
 
-		// the "engine" doesn't have a Update() method - so we just do our own and call it first thing on the render() message
+		// If we are here, then we are just rendering the *actual* videogame.
 		Update();
-		ShakeScreen();
+		m_gameStuff.TickScreenShake();
 
 		// actually drawing
 		ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
@@ -409,7 +351,7 @@ public class broughGDX extends ApplicationAdapter {
 		for(int i = 0; i < monstersOnScene.size; i++) {
 			BroughMonster monster = monstersOnScene.get(i);
 			if(monster.TeleportCount() <= 0) {
-				batch.draw(monster.Texture(), monster.RenderPosition().x + shakeX, monster.RenderPosition().y + shakeY, 32, 32);
+				batch.draw(monster.Texture(), monster.RenderPosition().x + m_gameStuff.GetShakeX(), monster.RenderPosition().y + m_gameStuff.GetShakeY(), 32, 32);
 
 				int monsterHP = monster.HP();
 				for(int j = 0; j < monsterHP; j++) {
@@ -427,7 +369,7 @@ public class broughGDX extends ApplicationAdapter {
 
 		// rendering the hero
 		Vector2 mainHeroPosition = theHero.RenderPosition();
-		batch.draw(mainHero, mainHeroPosition.x + shakeX, mainHeroPosition.y + shakeY, 32, 32);
+		batch.draw(mainHero, mainHeroPosition.x + m_gameStuff.GetShakeX(), mainHeroPosition.y + m_gameStuff.GetShakeY(), 32, 32);
 		int mainHeroHP = theHero.HP();
 		for(int i = 0; i < mainHeroHP; i++) {
 			batch.draw(uiHeart,
@@ -439,16 +381,64 @@ public class broughGDX extends ApplicationAdapter {
 		}
 
 		// rendering UI
-		// todo: MAGIC NUMBERS!!
-		String score = "SCORE:" + String.valueOf(m_playerScore);
-		kenneyMiniSquareMono.draw(batch, score, 2 * (videoWidth / 3) + 35, videoHeight - 50);
+		String score = "SCORE:" + String.valueOf(m_gameStuff.GetPlayerScore());
+		kenneyMiniSquareMono.draw(batch, score, 2 * (m_videoWidth / 3) + 35, m_videoHeight - 50);
 
 		// Rendering Debug
-		RenderDebug();
+		// RenderDebug();
 
 		batch.end();
 	}
-	
+
+	public void RenderTitleScreen() {
+		ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
+		batch.begin();
+		kenneyMiniSquareMono.draw(batch, "brough GDX", (m_videoWidth / 2) - 80, m_videoHeight / 2);
+		kenneyMiniSquareMono.draw(batch, "click anywhere to start!", (m_videoWidth / 2) - 190, (m_videoHeight / 2) - 30);
+
+		kenneyMiniSquareMono.draw(batch, "developed by gueepo", (m_videoWidth / 2) - 150, 25);
+		batch.end();
+
+		if(Gdx.input.isTouched()) {
+			m_gameStuff.SetCurrentState(BroughGame.EGameState.RUNNING);
+		}
+	}
+
+	public void RenderDeadScreen() {
+		ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
+		batch.begin();
+		kenneyMiniSquareMono.draw(batch, "YOU DIED", (m_videoWidth / 2) - 80, m_videoHeight / 2);
+		kenneyMiniSquareMono.draw(batch, ":(", (m_videoWidth / 2) - 10, (m_videoHeight / 2) - 25);
+		batch.end();
+
+		m_gameStuff.TickTimer(Gdx.graphics.getDeltaTime());
+
+		if(m_gameStuff.CanAdvanceScreen()) {
+			ReinitGame();
+			m_gameStuff.SetCurrentState(BroughGame.EGameState.TITLE);
+		}
+	}
+
+	public void RenderVictoryScreen() {
+		ScreenUtils.clear(0.1f, 0.1f, 0.1f, 1);
+		batch.begin();
+		kenneyMiniSquareMono.draw(batch, "YOU WON!", (m_videoWidth / 2) - 80, m_videoHeight / 2);
+		kenneyMiniSquareMono.draw(batch, ":)", (m_videoWidth / 2) - 10, (m_videoHeight / 2) - 25);
+		batch.end();
+
+		m_gameStuff.TickTimer(Gdx.graphics.getDeltaTime());
+
+		if(m_gameStuff.CanAdvanceScreen()) {
+			ReinitGame();
+			m_gameStuff.SetCurrentState(BroughGame.EGameState.TITLE);
+		}
+	}
+
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
+	// Cleaning everything up
+	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
 	@Override
 	public void dispose () {
 		batch.dispose();
@@ -466,7 +456,9 @@ public class broughGDX extends ApplicationAdapter {
 	}
 
 	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
 	// Dealing with AI
+	// -----------------------------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------------------------
 	private void MoveAIMonster(BroughMonster monster) {
 
@@ -480,7 +472,6 @@ public class broughGDX extends ApplicationAdapter {
 		int tileX = (int)(monster.Position().x / SIZE);
 		int tileY = (int)(monster.Position().y / SIZE);
 		BroughTile monsterCurrentTile = theDungeon.GetTile(tileX, tileY);
-
 
 		switch(monster.Type()) {
 			case EATER: // todo: should eat walls to recover HP!
@@ -521,14 +512,11 @@ public class broughGDX extends ApplicationAdapter {
 		int tileX = (int)(monster.Position().x / SIZE);
 		int tileY = (int)(monster.Position().y / SIZE);
 		BroughTile monsterCurrentTile = theDungeon.GetTile(tileX, tileY);
-		// Gdx.app.log("onecloser", "tileX/tileY: (" + tileX + ", " + tileY + ")");
-		// Gdx.app.log("onecloser", "monster current: (" + monsterCurrentTile.x + ", " + monsterCurrentTile.y + ")");
 
 		Array<BroughTile> passableNeighbours = theDungeon.GetAdjacentPassableNeighbours(monsterCurrentTile);
 		if(passableNeighbours.size > 0) {
 			BroughTile chosenTile = passableNeighbours.get(0);
 			int distanceToHero = BroughUtils.ManhattanDistance(new Vector2(chosenTile.x * SIZE, chosenTile.y * SIZE), theHero.Position());
-			// Gdx.app.log("onecloser", "monster current: (" + monsterCurrentTile.x + ", " + monsterCurrentTile.y + ")");
 
 			for(int i = 0; i < passableNeighbours.size; i++) {
 				Vector2 tilePosition = new Vector2(passableNeighbours.get(i).x * SIZE, passableNeighbours.get(i).y * SIZE);
@@ -547,7 +535,9 @@ public class broughGDX extends ApplicationAdapter {
 	}
 
 	// -----------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------
 	// Monster Factories
+	// -----------------------------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------------------------
 	public void SpawnRandomMonsterAtRandomPosition() {
 		newMonster.play(1.0f);
@@ -604,20 +594,5 @@ public class broughGDX extends ApplicationAdapter {
 	public BroughMonster CreateEater(Vector2 position) {
 		BroughMonster newEater = new BroughMonster(monsterEater, position, 1, BroughMonster.MonsterType.EATER);
 		return newEater;
-	}
-
-	// -----------------------------------------------------------------------------------------------
-	// Utilities
-	// -----------------------------------------------------------------------------------------------
-	private void ShakeScreen() {
-		if(shakeAmount > 0) {
-			shakeAmount--;
-		}
-
-		float shakeAngle = (float)(MathUtils.random() * Math.PI * 2);
-		shakeX = Math.round((float)(Math.cos(shakeAngle)) * shakeAmount);
-		shakeY = Math.round((float)(Math.sin(shakeAngle)) * shakeAmount);
-
-
 	}
 }

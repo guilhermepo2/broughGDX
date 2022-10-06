@@ -45,6 +45,7 @@ public class BroughGame {
         if(m_spawnCounter <= 0) {
             m_spawnCounter = m_spawnRate;
             m_spawnRate -= 1;
+            return true;
         }
 
         return false;

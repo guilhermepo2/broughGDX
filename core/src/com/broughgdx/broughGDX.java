@@ -75,6 +75,9 @@ public class broughGDX extends ApplicationAdapter {
 		m_videoWidth = Gdx.graphics.getWidth();
 		m_videoHeight = Gdx.graphics.getHeight();
 
+		Gdx.app.log("debug", "window width: " + m_videoWidth);
+		Gdx.app.log("debug", "window height: " + m_videoHeight);
+
 		myInputProcessor = new BroughInputProcessor();
 		Gdx.input.setInputProcessor(myInputProcessor);
 
